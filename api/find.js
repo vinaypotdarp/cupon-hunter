@@ -38,23 +38,27 @@ async function ddg(q, n = 2) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function gemini(key, prompt) {
-  let err = "";
+  let err = ""; const t0 = Date.now();
   for (const model of MODELS) {
     for (let attempt = 0; attempt < 2; attempt++) {
+      if (Date.now() - t0 > 38000) throw new Error(err || "AI busy — try again shortly");
+      const ctrl = new AbortController(); const tt = setTimeout(() => ctrl.abort(), 18000);
       try {
         const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, responseMimeType: "application/json" } }),
+          signal: ctrl.signal,
         });
         if (r.status === 404) break; // model gone — next model
         const j = await r.json();
         if (j.error) {
           err = j.error.message || "err";
-          if (/high demand|overloaded|503|try again/i.test(err) && attempt === 0) { await sleep(4000); continue; }
+          if (/high demand|overloaded|503|try again/i.test(err) && attempt === 0) { await sleep(2500); continue; }
           break; // quota etc — next model
         }
         return (j.candidates?.[0]?.content?.parts || []).map(p => p.text).join("");
       } catch (e) { err = String(e.message || e); break; }
+      finally { clearTimeout(tt); }
     }
   }
   throw new Error(err || "AI failed");
