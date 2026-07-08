@@ -134,7 +134,7 @@ const ROT=["Nike shoes","iPhone 17","MacBook Air","Amazon","Flipkart","Myntra","
 const SUG=[["Nike","👟","Brand"],["Nike Shoes","👟","Product"],["Nike Running Shoes","👟","Product"],["Nike Air Max","👟","Product"],["Adidas","👟","Brand"],["Puma","👟","Brand"],["Amazon","🛒","Store"],["Flipkart","🛒","Store"],["Myntra","👗","Store"],["Ajio","👗","Store"],["Nykaa","💄","Store"],["Zara","👗","Brand"],["H&M","👗","Brand"],["Levis","👖","Brand"],["iPhone 16","📱","Product"],["iPhone 17","📱","Product"],["iPhone Case","📱","Product"],["AirPods Pro","🎧","Product"],["MacBook Air","💻","Product"],["Apple","🍎","Brand"],["Apple Student Discount","🍎","Deal"],["Samsung","📱","Brand"],["OnePlus","📱","Brand"],["Boat","🎧","Brand"],["Laptop","💻","Category"],["HP Laptop","💻","Product"],["Dell Laptop","💻","Product"],["Lenovo","💻","Brand"],["Headphones","🎧","Category"],["Smartwatch","⌚","Category"],["Shoes","👟","Category"],["Sneakers","👟","Category"],["T-shirt","👕","Category"],["Jeans","👖","Category"],["Watches","⌚","Category"],["Perfume","🌸","Category"],["Mamaearth","🌿","Brand"],["Sephora","💄","Store"],["Sugar Cosmetics","💄","Brand"],["Dominos","🍕","Food"],["Pizza Hut","🍕","Food"],["Swiggy","🍔","Food"],["Zomato","🍔","Food"],["KFC","🍗","Food"],["McDonalds","🍔","Food"],["BigBasket","🥦","Grocery"],["Blinkit","🥦","Grocery"],["Zepto","🥦","Grocery"],["MakeMyTrip","✈️","Travel"],["Goibibo","✈️","Travel"],["Booking.com","🏨","Travel"],["Ixigo","🚆","Travel"],["Uber","🚕","Travel"],["Ola","🚕","Travel"],["Netflix","🎬","Subscription"],["Spotify","🎵","Subscription"],["YouTube Premium","🎬","Subscription"],["Hotstar","🎬","Subscription"],["Udemy","📚","Learning"],["Coursera","📚","Learning"],["Hostinger","🌐","Tech"],["Namecheap","🌐","Tech"],["GoDaddy","🌐","Tech"],["Adobe","🎨","Tech"],["Canva","🎨","Tech"],["Steam","🎮","Gaming"],["Epic Games","🎮","Gaming"],["Croma","🔌","Store"],["Reliance Digital","🔌","Store"],["Vijay Sales","🔌","Store"],["Tata Cliq","🛒","Store"],["Meesho","🛒","Store"],["Snapdeal","🛒","Store"],["FirstCry","🍼","Store"],["Pharmeasy","💊","Health"],["1mg","💊","Health"],["Cultfit","🏋️","Health"],["Decathlon","⚽","Store"],["Lenskart","👓","Store"],["Titan","⌚","Brand"],["Fastrack","⌚","Brand"],["Ikea","🛋️","Store"],["Pepperfry","🛋️","Store"],["Urban Company","🔧","Service"]];
 const TREND=["🔥 Amazon","🔥 Myntra Sale","🔥 Flipkart Electronics","🔥 Nike","🔥 Apple","🔥 Swiggy"];
 const PROVS=["grabon","desidime","coupondunia","wethrift","ddg"];
-const PNAME={grabon:"GrabOn",desidime:"DesiDime",coupondunia:"CouponDunia",wethrift:"Wethrift",ddg:"Web search"};
+const PNAME={grabon:"GrabOn",desidime:"DesiDime",coupondunia:"CouponDunia",wethrift:"Wethrift",ddg:"Web search",web:"Web"};
 let seen=new Set(),all=[],srcMap={},running=0,curQuery="";
 
 /* theme */
@@ -214,7 +214,9 @@ async function go(raw,auto){
   let stores=[],product=null;
   const u=/^https?:\/\//i.test(raw)||/^[a-z0-9-]+\.[a-z.]{2,6}(\/|$)/i.test(raw)?parseUrl(raw):null;
   if(u){stores=[u.store];product=u.product}
-  else{
+  else if(!/\s/.test(raw)||SUG.some(s=>s[0].toLowerCase()===raw.toLowerCase()&&/Store|Brand|Food|Travel|Subscription|Tech|Health|Service|Grocery|Learning|Gaming/.test(s[2]))){
+    stores=[raw.toLowerCase().replace(/[^a-z0-9]+/g,"-")]; // plain store/brand — save an AI call
+  }else{
     try{const r=await fetch("/api/find?mode=expand&q="+encodeURIComponent(raw));const j=await r.json();
       stores=(j.stores||[]).slice(0,2);product=j.product||null;
     }catch{}
@@ -222,34 +224,37 @@ async function go(raw,auto){
   }
   if(!auto)try{let r=JSON.parse(localStorage.getItem("ch_recent")||"[]");r=[raw,...r.filter(x=>x!==raw)].slice(0,6);localStorage.setItem("ch_recent",JSON.stringify(r));drawRecent()}catch{}
 
-  const jobs=[];
-  stores.forEach((s,si)=>PROVS.forEach(p=>{if(p!=="ddg"||si===0)jobs.push({s,p})}));
-  running=jobs.length;
-  jobs.forEach(j=>{
-    const id="pv_"+j.p+"_"+j.s;
-    $("stat").insertAdjacentHTML("beforeend",`<span class="pv" id="${id}"><span class="sp"></span>${PNAME[j.p]} · ${esc(j.s)}</span>`);
-    fetch(`/api/find?store=${encodeURIComponent(j.s)}&provider=${j.p}${product?"&product="+encodeURIComponent(product):""}`)
-      .then(r=>r.json()).then(d=>fin(id,d,j)).catch(()=>fin(id,{coupons:[]},j));
+  stores=stores.slice(0,2);running=stores.length;window._best=null;
+  stores.forEach(s=>{
+    const id="pv_st_"+s.replace(/[^a-z0-9]/g,"");
+    $("stat").insertAdjacentHTML("beforeend",`<span class="pv" id="${id}"><span class="sp"></span>Searching ${esc(s)} across all sources…</span>`);
+    fetch(`/api/find?store=${encodeURIComponent(s)}${product?"&product="+encodeURIComponent(product):""}`)
+      .then(r=>r.json()).then(d=>fin(id,d,s)).catch(()=>fin(id,{coupons:[]},s));
   });
 }
 
 const byKey=new Map();
-function fin(id,d,j){
+function fin(id,d,s){
   const el=$(id);
-  const got=(d.coupons||[]).length;
-  if(el){el.classList.add(got?"done":"fail");el.querySelector(".sp")?.remove();el.insertAdjacentText("afterbegin",got?"✓ ":"")}
-  (d.sources||[]).forEach((u,i)=>srcMap[j.p+"_"+(i+1)]=u);
+  if(el){
+    el.querySelector(".sp")?.remove();
+    const st=d.status||{};
+    el.classList.add((d.coupons||[]).length?"done":"fail");
+    el.innerHTML=`${(d.coupons||[]).length?"✓":"✕"} ${esc(s)}: `+Object.keys(st).map(p=>`${st[p]==="ok"?"✅":"⛔"} ${esc(PNAME[p]||p)}`).join(" ");
+  }
+  if(d.best&&!window._best)window._best=d.best;
   (d.coupons||[]).forEach(c=>{
     const k=(c.code?c.code:(c.discount||"")).toLowerCase().replace(/\s+/g,"");
+    const pn=PNAME[c.provider]||c.provider||"web";
     const ex=byKey.get(k);
-    if(ex){ // merge duplicate confirmed by another provider
-      if(!ex._provs.includes(PNAME[j.p]))ex._provs.push(PNAME[j.p]);
+    if(ex){
+      if(!ex._provs.includes(pn))ex._provs.push(pn);
       ex.verified=ex.verified||c.verified;
       ex.confidence=Math.max(ex.confidence||0,c.confidence||0);
       ex.bankOffer=ex.bankOffer||c.bankOffer;
       return;
     }
-    c._src=srcMap[j.p+"_"+(c.source||1)]||"";c._provs=[PNAME[j.p]];c._store=j.s;
+    c._src=c.sourceUrl||"";c._provs=[pn];c._store=s;
     byKey.set(k,c);all.push(c);
   });
   render();
@@ -284,13 +289,11 @@ function render(){
   document.querySelectorAll(".codebox").forEach(b=>b.onclick=e=>copy(b.dataset.code,e));
 }
 
-async function done(){
+function done(){
   render();
   if(all.length<1)return;
-  try{
-    const r=await fetch("/api/find",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({mode:"best",query:curQuery,coupons:all.slice(0,20).map(c=>({store:c._store,code:c.code,discount:c.discount,description:c.description,expiry:c.expiry,verified:c.verified}))})});
-    const b=await r.json();
+  {
+    const b=window._best;
     if(b&&b.headline){
       $("best").innerHTML=`<div class="bt">✨ Best way to save today</div><h3>${esc(b.headline)}</h3>
         <p>${esc(b.reason||"")}</p>
@@ -300,7 +303,7 @@ async function done(){
       $("best").style.display="block";
       const cb=$("best").querySelector(".codebox");if(cb)cb.onclick=e=>copy(cb.dataset.code,e);
     }
-  }catch{}
+  }
 }
 
 function copy(code,e){
