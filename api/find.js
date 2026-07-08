@@ -46,7 +46,7 @@ async function gemini(key, prompt) {
       });
       if (r.status === 404) continue;
       const j = await r.json();
-      if (j.error) { err = j.error.message || "err"; if (/quota|rate/i.test(err)) break; continue; }
+      if (j.error) { err = j.error.message || "err"; continue; } // incl. quota — try the next free model
       return (j.candidates?.[0]?.content?.parts || []).map(p => p.text).join("");
     } catch (e) { err = String(e.message || e); }
   }
