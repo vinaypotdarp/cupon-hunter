@@ -48,6 +48,19 @@
   .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 15px;font-size:13.5px;cursor:pointer;color:var(--fg);transition:border .15s,color .15s}
   .chip:hover{border-color:var(--acc);color:var(--acc)}
   #stat{display:none;gap:8px;flex-wrap:wrap;margin:8px 0 16px}
+  #agent{display:none;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 20px;margin:8px 0 16px}
+  #agent .at{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);margin-bottom:8px}
+  #agent .stp{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:13.5px;color:var(--mut)}
+  #agent .stp.on{color:var(--fg)}
+  #agent .stp.ok{color:var(--grn)}
+  .ways{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:6px 22px 14px;box-shadow:var(--sh)}
+  .way{padding:13px 0;border-bottom:1px dashed var(--line)}
+  .way:last-child{border-bottom:none}
+  .way b{font-size:14.5px}
+  .way p{font-size:13.5px;color:var(--mut);margin-top:3px;line-height:1.5}
+  .way .tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-radius:6px;padding:2px 8px;margin-left:8px;vertical-align:middle;color:#2563eb;background:rgba(59,130,246,.12)}
+  .rsn{font-size:12px;color:var(--grn);margin-top:8px}
+  .cbadge{display:inline-block;font-size:12px;font-weight:800;color:var(--grn);background:var(--grnbg);border-radius:999px;padding:3px 12px;margin-left:8px;vertical-align:middle}
   .pv{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--mut);display:flex;align-items:center;gap:6px}
   .pv.done{color:var(--grn);border-color:var(--grn)}
   .pv.fail{opacity:.45;text-decoration:line-through}
@@ -107,7 +120,7 @@
 
   <div class="hero" id="hero">
     <h1>Before you buy, <em>check here.</em></h1>
-    <p>One search. Every coupon source. Your biggest saving — found for you.</p>
+    <p>Never overpay again. One search — coupons, cashback routes, card offers, cheaper stores — ranked for you.</p>
     <div class="sbox">
       <span class="sico">🔍</span>
       <input id="q" autocomplete="off" spellcheck="false" placeholder="What are you buying today?">
@@ -121,9 +134,11 @@
     <div class="chips" id="recent" style="margin-top:10px"></div>
   </div>
 
+  <div id="agent"></div>
   <div id="stat"></div>
   <div id="best"></div>
   <div id="out"></div>
+  <div id="extra"></div>
   <footer>Codes change fast — always confirm the discount at checkout. Made with CouponHunter.</footer>
 </div>
 <div class="toast" id="toast">Copied!</div>
@@ -208,8 +223,11 @@ async function go(raw,auto){
   $("q").value=raw;$("ac").style.display="none";curQuery=raw;
   $("hero").classList.add("compact");$("trendWrap").style.display="none";
   $("best").style.display="none";$("out").innerHTML='<div class="skel"></div><div class="skel"></div><div class="skel"></div>';
+  $("extra").innerHTML="";
   $("stat").style.display="flex";$("stat").innerHTML="";
-  seen=new Set();all=[];srcMap={};running=0;byKey.clear();
+  seen=new Set();all=[];srcMap={};running=0;byKey.clear();window._extra=null;
+  agentInit(["Understanding what you're buying","Identifying brand & best stores","Checking coupon providers","Checking cashback & bank-offer routes","Comparing & ranking every way to save"]);
+  agentStep(0,"on");
 
   let stores=[],product=null;
   const u=/^https?:\/\//i.test(raw)||/^[a-z0-9-]+\.[a-z.]{2,6}(\/|$)/i.test(raw)?parseUrl(raw):null;
@@ -224,6 +242,7 @@ async function go(raw,auto){
   }
   if(!auto)try{let r=JSON.parse(localStorage.getItem("ch_recent")||"[]");r=[raw,...r.filter(x=>x!==raw)].slice(0,6);localStorage.setItem("ch_recent",JSON.stringify(r));drawRecent()}catch{}
 
+  agentStep(0,"ok");agentStep(1,"ok");agentStep(2,"on");agentStep(3,"on");
   stores=stores.slice(0,2);running=stores.length;window._best=null;
   stores.forEach(s=>{
     const id="pv_st_"+s.replace(/[^a-z0-9]/g,"");
@@ -243,6 +262,7 @@ function fin(id,d,s){
     el.innerHTML=`${(d.coupons||[]).length?"✓":"✕"} ${esc(s)}: `+Object.keys(st).map(p=>`${st[p]==="ok"?"✅":"⛔"} ${esc(PNAME[p]||p)}`).join(" ");
   }
   if(d.best&&!window._best)window._best=d.best;
+  if(!window._extra&&((d.otherWays||[]).length||(d.alternatives||[]).length))window._extra={ways:d.otherWays||[],alts:d.alternatives||[]};
   (d.coupons||[]).forEach(c=>{
     const k=(c.code?c.code:(c.discount||"")).toLowerCase().replace(/\s+/g,"");
     const pn=PNAME[c.provider]||c.provider||"web";
@@ -267,7 +287,7 @@ function health(c){
 function score(c){return health(c)+(((/\d+/.exec(c.discount||"")||[0])[0]>50)?8:0)}
 
 function render(){
-  if(!all.length){$("out").innerHTML=running?'<div class="skel"></div><div class="skel"></div>':'<div class="empty">Nothing found — try another store name, or check the source sites directly.</div>';return}
+  if(!all.length){$("out").innerHTML=running?'<div class="skel"></div><div class="skel"></div>':'<div class="empty">No live coupon codes right now — but you can still pay less. Here\'s your savings plan: ↓</div>';return}
   const sorted=[...all].sort((a,b)=>score(b)-score(a));
   $("out").innerHTML=sorted.map((c,i)=>`
     <div class="card">
@@ -289,20 +309,50 @@ function render(){
   document.querySelectorAll(".codebox").forEach(b=>b.onclick=e=>copy(b.dataset.code,e));
 }
 
+function agentInit(steps){
+  $("agent").innerHTML='<div class="at">🤖 AI Shopping Agent</div>'+steps.map((s,i)=>`<div class="stp" id="ag${i}"><span id="agi${i}">○</span> ${esc(s)}</div>`).join("");
+  $("agent").style.display="block";
+}
+function agentStep(i,st){
+  const el=$("ag"+i);if(!el)return;
+  el.className="stp "+st;
+  $("agi"+i).textContent=st==="ok"?"✓":st==="on"?"◌":"○";
+}
+
+const FALLBACK_WAYS=s=>[
+  {title:"Route through a cashback portal",how:`Open ${s} via CashKaro or a similar cashback site before buying — you earn a % back on top of any other discount.`,type:"cashback"},
+  {title:"Check card offers at checkout",how:`${s} usually lists live bank/card offers on the payment page — check before paying, they stack with sale prices.`,type:"bank"},
+  {title:"First-order & newsletter discounts",how:`Sign up for ${s}'s newsletter or app — first-order codes are common and often 10-15%.`,type:"newsletter"},
+  {title:"Time it with a sale",how:"Big Indian sales (month-end, festive, payday) reliably cut 10-40%. If you can wait days, set a reminder.",type:"timing"},
+];
+
+function renderExtra(){
+  const x=window._extra||{ways:FALLBACK_WAYS(curQuery),alts:[]};
+  let h="";
+  if((x.alts||[]).length){
+    h+='<div class="sect">Cheaper elsewhere?</div><div class="ways">'+x.alts.map(a=>`<div class="way"><b>${esc(a.store)}</b><p>${esc(a.why||"")}</p></div>`).join("")+"</div>";
+  }
+  const ways=(x.ways&&x.ways.length?x.ways:FALLBACK_WAYS(curQuery));
+  h+='<div class="sect">More ways to save — beyond coupons</div><div class="ways">'+
+    ways.map(w=>`<div class="way"><b>${esc(w.title)}</b><span class="tag">${esc(w.type||"tip")}</span><p>${esc(w.how||"")}</p></div>`).join("")+"</div>";
+  $("extra").innerHTML=h;
+}
+
 function done(){
+  agentStep(2,"ok");agentStep(3,"ok");agentStep(4,"ok");
+  setTimeout(()=>{$("agent").style.display="none"},900);
   render();
-  if(all.length<1)return;
-  {
-    const b=window._best;
-    if(b&&b.headline){
-      $("best").innerHTML=`<div class="bt">✨ Best way to save today</div><h3>${esc(b.headline)}</h3>
-        <p>${esc(b.reason||"")}</p>
-        ${Array.isArray(b.breakdown)&&b.breakdown.length?`<table class="bk">${b.breakdown.map(r=>`<tr><td>${esc(r.label)}</td><td>${esc(r.value)}</td></tr>`).join("")}</table>`:""}
-        ${b.code?`<div class="codebox" style="display:inline-block;margin-top:12px" data-code="${esc(b.code)}">${esc(b.code)}<small>TAP TO COPY</small></div>`:""}
-        ${b.alt&&b.alt.store?`<div class="alt">💡 <b>Also worth checking:</b> ${esc(b.alt.store)} — ${esc(b.alt.why||"")}</div>`:""}`;
-      $("best").style.display="block";
-      const cb=$("best").querySelector(".codebox");if(cb)cb.onclick=e=>copy(cb.dataset.code,e);
-    }
+  renderExtra();
+  const b=window._best;
+  if(b&&b.headline){
+    $("best").innerHTML=`<div class="bt">✨ Best purchase strategy</div>
+      <h3>${esc(b.headline)}${b.confidence?`<span class="cbadge">${Math.round(b.confidence)}% confidence</span>`:""}</h3>
+      <p>${esc(b.reason||"")}</p>
+      ${Array.isArray(b.breakdown)&&b.breakdown.length?`<table class="bk">${b.breakdown.map(r=>`<tr><td>${esc(r.label)}</td><td>${esc(r.value)}</td></tr>`).join("")}</table>`:""}
+      ${b.code?`<div class="codebox" style="display:inline-block;margin-top:12px" data-code="${esc(b.code)}">${esc(b.code)}<small>TAP TO COPY</small></div>`:""}
+      ${Array.isArray(b.reasons)&&b.reasons.length?`<div class="rsn">✓ ${b.reasons.map(esc).join(" &nbsp;✓ ")}</div>`:""}`;
+    $("best").style.display="block";
+    const cb=$("best").querySelector(".codebox");if(cb)cb.onclick=e=>copy(cb.dataset.code,e);
   }
 }
 
