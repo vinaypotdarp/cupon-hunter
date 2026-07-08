@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/find.js": {
+      "maxDuration": 60
+    }
+  }
+}

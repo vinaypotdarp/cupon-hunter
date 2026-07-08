@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deal Hunter — Free Coupon Finder (India)</title>
+<meta name="description" content="Paste any product link and find working coupon codes & deals for Indian stores — free.">
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f7f6f3; color: #1a1a1a; padding: 24px 16px 48px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 26px; margin-bottom: 4px; }
+  h1 .tag { font-size: 13px; font-weight: 500; color: #b45309; background: #fef3c7; border-radius: 999px; padding: 2px 10px; vertical-align: middle; margin-left: 8px; }
+  .sub { color: #6b6b6b; font-size: 14px; margin-bottom: 20px; }
+  .searchbox { display: flex; gap: 8px; margin-bottom: 10px; }
+  input[type=text] { flex: 1; padding: 13px 16px; font-size: 15px; border: 1.5px solid #ddd; border-radius: 12px; outline: none; background: #fff; }
+  input[type=text]:focus { border-color: #c96f2b; }
+  button.go { padding: 13px 22px; font-size: 15px; font-weight: 600; color: #fff; background: #c96f2b; border: none; border-radius: 12px; cursor: pointer; white-space: nowrap; }
+  button.go:hover { background: #b35f1f; }
+  button.go:disabled { background: #d8b18f; cursor: default; }
+  .hint { font-size: 12.5px; color: #8a8a8a; margin-bottom: 18px; }
+  .recent { margin-bottom: 18px; font-size: 12.5px; color: #777; }
+  .recent span.chip { display: inline-block; background: #fff; border: 1px solid #e2e2e2; border-radius: 999px; padding: 4px 12px; margin: 0 6px 6px 0; cursor: pointer; color: #444; }
+  .recent span.chip:hover { border-color: #c96f2b; color: #c96f2b; }
+  #status { display: none; background: #fff; border: 1px solid #eee; border-radius: 14px; padding: 16px 18px; margin-bottom: 18px; font-size: 14px; color: #555; }
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid #eee; border-top-color: #c96f2b; border-radius: 50%; animation: sp 0.8s linear infinite; vertical-align: -2px; margin-right: 8px; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  #error { display: none; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; font-size: 14px; }
+  .storehead { font-size: 15px; color: #555; margin: 6px 0 14px; }
+  .storehead b { color: #1a1a1a; text-transform: capitalize; }
+  .card { background: #fff; border: 1px solid #ececec; border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+  .card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .card .disc { font-size: 17px; font-weight: 700; color: #b45309; }
+  .card .desc { font-size: 14px; color: #444; margin-top: 5px; line-height: 1.45; }
+  .card .meta { font-size: 12px; color: #999; margin-top: 8px; }
+  .card .meta a { color: #b45309; text-decoration: none; }
+  .codebox { display: flex; align-items: center; gap: 6px; flex-shrink: 0; border: 1.5px dashed #c96f2b; border-radius: 10px; padding: 7px 12px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px; font-weight: 700; color: #b45309; background: #fffbf5; cursor: pointer; user-select: all; }
+  .codebox:hover { background: #fef3e2; }
+  .codebox .cpy { font-size: 11px; font-weight: 500; color: #999; font-family: inherit; }
+  .nocode { font-size: 12.5px; color: #16a34a; background: #f0fdf4; border-radius: 8px; padding: 6px 10px; flex-shrink: 0; }
+  .badge-v { display: inline-block; font-size: 11px; color: #15803d; background: #f0fdf4; border-radius: 6px; padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
+  .section-t { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #999; margin: 26px 0 12px; }
+  .quick a { display: inline-block; font-size: 13px; background: #fff; border: 1px solid #e2e2e2; border-radius: 999px; padding: 6px 14px; margin: 0 8px 8px 0; text-decoration: none; color: #444; }
+  .quick a:hover { border-color: #c96f2b; color: #c96f2b; }
+  .srcs { font-size: 12.5px; color: #888; line-height: 1.7; }
+  .srcs a { color: #b45309; text-decoration: none; word-break: break-all; }
+  .empty { text-align: center; color: #999; font-size: 14px; padding: 30px 0; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; font-size: 13px; padding: 9px 18px; border-radius: 999px; opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  footer { margin-top: 40px; font-size: 12px; color: #aaa; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏷️ Deal Hunter <span class="tag">India</span></h1>
+  <div class="sub">Paste a product link — or type a store / product name — and it hunts the web for working coupon codes and deals. Free.</div>
+
+  <div class="searchbox">
+    <input type="text" id="q" placeholder="e.g. https://www.myntra.com/... or &quot;flipkart&quot; or &quot;iPhone 16&quot;" />
+    <button class="go" id="goBtn" onclick="hunt()">Find deals</button>
+  </div>
+  <div class="hint">Works with Amazon.in, Flipkart, Myntra, Ajio, Nykaa, Swiggy, Zomato, BigBasket — any Indian store.</div>
+
+  <div class="recent" id="recent"></div>
+  <div id="error"></div>
+  <div id="status"><span class="spin"></span><span id="statusText">Hunting for deals… (takes ~15–30 s)</span></div>
+  <div id="results"></div>
+  <footer>Codes change fast — always confirm the discount at checkout before paying.</footer>
+</div>
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function parseInput(raw) {
+  raw = raw.trim();
+  let store = null, product = null;
+  if (/^https?:\/\//i.test(raw) || /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$)/i.test(raw)) {
+    try {
+      const u = new URL(/^https?:\/\//i.test(raw) ? raw : "https://" + raw);
+      store = u.hostname.replace(/^www\./, "").split(".")[0];
+      const slug = decodeURIComponent(u.pathname).split("/").filter(Boolean)
+        .map(s => s.replace(/[-_+]/g, " "))
+        .filter(s => s.length > 8 && !/^\d+$/.test(s) && !/(product|item|dp|gp|buy|p|pd)$/i.test(s.trim()))
+        .sort((a, b) => b.length - a.length)[0];
+      if (slug) product = slug.replace(/\b[a-z0-9]{10,}\b/gi, "").replace(/\s+/g, " ").trim().slice(0, 70);
+    } catch (e) { store = raw; }
+  } else {
+    store = raw;
+  }
+  return { store, product };
+}
+
+async function hunt(preset) {
+  const raw = preset || $("q").value;
+  if (!raw.trim()) return;
+  if (preset) $("q").value = preset;
+  const { store, product } = parseInput(raw);
+
+  $("goBtn").disabled = true;
+  $("error").style.display = "none";
+  $("results").innerHTML = "";
+  $("status").style.display = "block";
+
+  try {
+    const params = new URLSearchParams({ store: store });
+    if (product) params.set("product", product);
+    const r = await fetch("/api/find?" + params.toString());
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    render(store, product, data.coupons || [], data.sources || [], data.note);
+    saveRecent(store);
+  } catch (err) {
+    $("error").style.display = "block";
+    $("error").textContent = "Something went wrong: " + err.message;
+  } finally {
+    $("goBtn").disabled = false;
+    $("status").style.display = "none";
+  }
+}
+
+function esc(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+
+function render(store, product, coupons, sources, note) {
+  let h = '<div class="storehead">Deals for <b>' + esc(store) + '</b>' + (product ? ' · <span style="color:#888">' + esc(product) + "</span>" : "") + "</div>";
+
+  if (note) h += '<div class="empty">' + esc(note) + "</div>";
+  else if (coupons.length === 0) h += '<div class="empty">No active codes extracted this time — try the quick links below, or search again.</div>';
+
+  coupons.forEach(c => {
+    const src = sources[(c.source || 1) - 1];
+    h += '<div class="card"><div class="top"><div>' +
+      '<div class="disc">' + esc(c.discount || "Deal") + (c.verified ? '<span class="badge-v">✓ verified</span>' : "") + "</div>" +
+      '<div class="desc">' + esc(c.description || "") + "</div>" +
+      '<div class="meta">' + (c.expiry ? "Expires " + esc(c.expiry) + " · " : "") +
+      (src ? 'via <a href="' + esc(src) + '" target="_blank" rel="noopener">' + esc(src.replace(/^https?:\/\/(www\.)?/, "").slice(0, 50)) + "</a>" : "") + "</div></div>" +
+      (c.code ? '<div class="codebox" onclick="copyCode(\'' + esc(String(c.code)).replace(/'/g, "\\'") + '\')">' + esc(c.code) + ' <span class="cpy">COPY</span></div>'
+              : '<div class="nocode">No code needed</div>') +
+      "</div></div>";
+  });
+
+  const s = encodeURIComponent(store);
+  h += '<div class="section-t">Double-check on coupon sites</div><div class="quick">' +
+    '<a target="_blank" rel="noopener" href="https://www.grabon.in/search/?q=' + s + '">GrabOn</a>' +
+    '<a target="_blank" rel="noopener" href="https://www.coupondunia.in/search?q=' + s + '">CouponDunia</a>' +
+    '<a target="_blank" rel="noopener" href="https://www.desidime.com/search?q=' + s + '">DesiDime</a>' +
+    '<a target="_blank" rel="noopener" href="https://cashkaro.com/search?searchVal=' + s + '">CashKaro (cashback)</a>' +
+    (product ? '<a target="_blank" rel="noopener" href="https://www.google.com/search?q=' + encodeURIComponent(product + " best price India") + '&tbm=shop">Google Shopping</a>' : "") +
+    "</div>";
+
+  if (sources.length) {
+    h += '<div class="section-t">Sources read</div><div class="srcs">' +
+      sources.map(u => '• <a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + "</a>").join("<br>") + "</div>";
+  }
+  $("results").innerHTML = h;
+}
+
+function copyCode(code) {
+  navigator.clipboard.writeText(code).then(() => {
+    $("toast").classList.add("show");
+    setTimeout(() => $("toast").classList.remove("show"), 1400);
+  });
+}
+
+function saveRecent(store) {
+  try {
+    let r = JSON.parse(localStorage.getItem("dh_recent") || "[]");
+    r = [store, ...r.filter(x => x !== store)].slice(0, 8);
+    localStorage.setItem("dh_recent", JSON.stringify(r));
+    drawRecent();
+  } catch (e) {}
+}
+function drawRecent() {
+  try {
+    const r = JSON.parse(localStorage.getItem("dh_recent") || "[]");
+    $("recent").innerHTML = r.length ? "Recent: " + r.map(x => '<span class="chip" onclick="hunt(\'' + esc(x).replace(/'/g, "\\'") + '\')">' + esc(x) + "</span>").join("") : "";
+  } catch (e) {}
+}
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") hunt(); });
+drawRecent();
+</script>
+</body>
+</html>
