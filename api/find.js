@@ -80,8 +80,11 @@ export default async function handler(req, res) {
     if (mode === "best" && req.method === "POST") {
       const b = req.body || {};
       const text = await gemini(key,
-        `You are a savings advisor. Today is ${today}. The user searched "${b.query}". Here are coupons found (JSON): ${JSON.stringify(b.coupons || []).slice(0, 9000)}\n` +
-        `Pick the single best way to save (biggest realistic saving, prefer verified & unexpired). Return ONLY JSON: {"headline":"short punchy recommendation","store":"store","code":"code or null","reason":"1 sentence why this beats the rest"}.`);
+        `You are a savings decision engine. Today is ${today}. The user searched "${b.query}". Coupons found (JSON): ${JSON.stringify(b.coupons || []).slice(0, 9000)}\n` +
+        `Rules: use ONLY facts present in the data above — never invent cashback, bank offers, or amounts. Mark derived numbers "est.".\n` +
+        `Return ONLY JSON: {"headline":"short punchy recommendation","store":"store","code":"code or null","reason":"1 sentence why this beats the rest",` +
+        `"breakdown":[{"label":"e.g. Coupon / Bank offer / Min order","value":"e.g. Flat ₹500 off"}] (2-4 rows, only from real data),` +
+        `"alt":{"store":"different store from the data with a strong offer","why":"1 short sentence"} or null if no better alternative store exists in the data}.`);
       return res.status(200).json(pluck(text, "{", "}") || {});
     }
 
@@ -103,7 +106,7 @@ export default async function handler(req, res) {
 
     const text = await gemini(key,
       `Extract ACTIVE coupon codes/deals for "${store}"${product ? ` (product: "${product}")` : ""} from these pages. Today is ${today}; skip expired.\n` +
-      `Return ONLY a JSON array, max 8, best first: [{"code":"CODE or null","discount":"short headline","description":"1 sentence incl. conditions","expiry":"date or null","verified":true|false,"confidence":0-100,"source":1}] where source = SOURCE number.\n\n` +
+      `Return ONLY a JSON array, max 8, best first: [{"code":"CODE or null","discount":"short headline","description":"1 sentence incl. conditions","expiry":"date or null","verified":true|false,"confidence":0-100,"bankOffer":"short bank/card offer text if the page mentions one for this deal, else null","source":1}] where source = SOURCE number.\n\n` +
       pages.map((p, i) => `SOURCE ${i + 1} — ${p.url}\n${p.text}`).join("\n---\n"));
     const coupons = pluck(text, "[", "]") || [];
     return res.status(200).json({ coupons, sources: pages.map(p => p.url), provider, store });
