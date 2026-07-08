@@ -65,6 +65,23 @@
   .meta a{color:var(--acc);text-decoration:none}
   .vb{font-size:11px;font-weight:700;color:var(--grn);background:var(--grnbg);border-radius:6px;padding:2px 8px}
   .cf{font-size:11px;color:var(--ambfg);background:var(--amb);border-radius:6px;padding:2px 8px}
+  .bo{font-size:11px;font-weight:600;color:#2563eb;background:rgba(59,130,246,.12);border-radius:6px;padding:2px 8px}
+  .hs{font-size:11px;font-weight:800;border-radius:6px;padding:2px 8px}
+  .hs.g{color:var(--grn);background:var(--grnbg)}
+  .hs.a{color:var(--ambfg);background:var(--amb)}
+  .hs.x{color:var(--mut);background:var(--line)}
+  .provs{font-size:11.5px;color:var(--mut)}
+  .provs b{color:var(--fg);font-weight:600}
+  #mic{position:absolute;right:118px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:17px;cursor:pointer;opacity:.65;z-index:5}
+  #mic:hover{opacity:1}
+  #mic.rec{animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.25}}
+  .bk{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px}
+  .bk td{padding:5px 0;border-bottom:1px dashed var(--line)}
+  .bk td:last-child{text-align:right;font-weight:700}
+  .alt{margin-top:12px;font-size:13.5px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:12px;padding:10px 14px}
+  .acx{display:flex;align-items:center;gap:10px}
+  .acx .cat{margin-left:auto;font-size:11px;color:var(--mut);background:var(--line);border-radius:6px;padding:1px 8px}
   .codebox{flex-shrink:0;border:1.5px dashed var(--acc);border-radius:12px;padding:9px 14px;font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:700;color:var(--acc);background:rgba(201,111,43,.05);cursor:pointer;text-align:center;transition:transform .1s}
   .codebox:active{transform:scale(.94)}
   .codebox small{display:block;font-size:10px;color:var(--mut);font-weight:500;margin-top:2px}
@@ -94,6 +111,7 @@
     <div class="sbox">
       <span class="sico">🔍</span>
       <input id="q" autocomplete="off" spellcheck="false" placeholder="What are you buying today?">
+      <button id="mic" title="Voice search">🎤</button>
       <button id="goBtn">Find savings</button>
       <div id="ac"></div>
     </div>
@@ -113,7 +131,7 @@
 <script>
 const $=i=>document.getElementById(i);
 const ROT=["Nike shoes","iPhone 17","MacBook Air","Amazon","Flipkart","Myntra","Ajio","Zara","Dominos","Swiggy","MakeMyTrip","Samsung","Boat","Mamaearth","Nykaa","Spotify","Netflix","Udemy","Hostinger","Adidas"];
-const SUG=["Nike","Nike Shoes","Nike Running Shoes","Nike Air Max","Adidas","Puma","Amazon","Flipkart","Myntra","Ajio","Nykaa","Zara","H&M","Levis","iPhone 16","iPhone 17","iPhone Case","AirPods Pro","MacBook Air","Apple","Samsung","OnePlus","Boat","Laptop","HP Laptop","Dell Laptop","Lenovo","Headphones","Smartwatch","Shoes","Sneakers","T-shirt","Jeans","Watches","Perfume","Mamaearth","Sephora","Sugar Cosmetics","Dominos","Pizza Hut","Swiggy","Zomato","KFC","McDonalds","BigBasket","Blinkit","Zepto","MakeMyTrip","Goibibo","Booking.com","Ixigo","Uber","Ola","Netflix","Spotify","YouTube Premium","Hotstar","Udemy","Coursera","Hostinger","Namecheap","GoDaddy","Adobe","Canva","Steam","Epic Games","Croma","Reliance Digital","Vijay Sales","Tata Cliq","Meesho","Snapdeal","FirstCry","Pharmeasy","1mg","Cultfit","Decathlon","Lenskart","Titan","Fastrack","Ikea","Pepperfry","Urban Company"];
+const SUG=[["Nike","👟","Brand"],["Nike Shoes","👟","Product"],["Nike Running Shoes","👟","Product"],["Nike Air Max","👟","Product"],["Adidas","👟","Brand"],["Puma","👟","Brand"],["Amazon","🛒","Store"],["Flipkart","🛒","Store"],["Myntra","👗","Store"],["Ajio","👗","Store"],["Nykaa","💄","Store"],["Zara","👗","Brand"],["H&M","👗","Brand"],["Levis","👖","Brand"],["iPhone 16","📱","Product"],["iPhone 17","📱","Product"],["iPhone Case","📱","Product"],["AirPods Pro","🎧","Product"],["MacBook Air","💻","Product"],["Apple","🍎","Brand"],["Apple Student Discount","🍎","Deal"],["Samsung","📱","Brand"],["OnePlus","📱","Brand"],["Boat","🎧","Brand"],["Laptop","💻","Category"],["HP Laptop","💻","Product"],["Dell Laptop","💻","Product"],["Lenovo","💻","Brand"],["Headphones","🎧","Category"],["Smartwatch","⌚","Category"],["Shoes","👟","Category"],["Sneakers","👟","Category"],["T-shirt","👕","Category"],["Jeans","👖","Category"],["Watches","⌚","Category"],["Perfume","🌸","Category"],["Mamaearth","🌿","Brand"],["Sephora","💄","Store"],["Sugar Cosmetics","💄","Brand"],["Dominos","🍕","Food"],["Pizza Hut","🍕","Food"],["Swiggy","🍔","Food"],["Zomato","🍔","Food"],["KFC","🍗","Food"],["McDonalds","🍔","Food"],["BigBasket","🥦","Grocery"],["Blinkit","🥦","Grocery"],["Zepto","🥦","Grocery"],["MakeMyTrip","✈️","Travel"],["Goibibo","✈️","Travel"],["Booking.com","🏨","Travel"],["Ixigo","🚆","Travel"],["Uber","🚕","Travel"],["Ola","🚕","Travel"],["Netflix","🎬","Subscription"],["Spotify","🎵","Subscription"],["YouTube Premium","🎬","Subscription"],["Hotstar","🎬","Subscription"],["Udemy","📚","Learning"],["Coursera","📚","Learning"],["Hostinger","🌐","Tech"],["Namecheap","🌐","Tech"],["GoDaddy","🌐","Tech"],["Adobe","🎨","Tech"],["Canva","🎨","Tech"],["Steam","🎮","Gaming"],["Epic Games","🎮","Gaming"],["Croma","🔌","Store"],["Reliance Digital","🔌","Store"],["Vijay Sales","🔌","Store"],["Tata Cliq","🛒","Store"],["Meesho","🛒","Store"],["Snapdeal","🛒","Store"],["FirstCry","🍼","Store"],["Pharmeasy","💊","Health"],["1mg","💊","Health"],["Cultfit","🏋️","Health"],["Decathlon","⚽","Store"],["Lenskart","👓","Store"],["Titan","⌚","Brand"],["Fastrack","⌚","Brand"],["Ikea","🛋️","Store"],["Pepperfry","🛋️","Store"],["Urban Company","🔧","Service"]];
 const TREND=["🔥 Amazon","🔥 Myntra Sale","🔥 Flipkart Electronics","🔥 Nike","🔥 Apple","🔥 Swiggy"];
 const PROVS=["grabon","desidime","coupondunia","wethrift","ddg"];
 const PNAME={grabon:"GrabOn",desidime:"DesiDime",coupondunia:"CouponDunia",wethrift:"Wethrift",ddg:"Web search"};
@@ -132,28 +150,44 @@ $("trend").innerHTML=TREND.map(t=>`<span class="chip" onclick="go('${t.replace("
 function drawRecent(){try{const r=JSON.parse(localStorage.getItem("ch_recent")||"[]");$("recent").innerHTML=r.map(x=>`<span class="chip">↩ ${esc(x)}</span>`).join("");[...$("recent").children].forEach((c,i)=>c.onclick=()=>go(r[i]))}catch{}}
 drawRecent();
 
-/* autocomplete */
-let acIdx=-1;
+/* autocomplete + instant search */
+let acIdx=-1,acVals=[],debT=null,qCache=new Map();
 $("q").addEventListener("input",()=>{
   const v=$("q").value.trim().toLowerCase();acIdx=-1;
+  clearTimeout(debT);
+  if(v.length>=3&&!/^https?:/i.test(v))debT=setTimeout(()=>{if($("q").value.trim().toLowerCase()===v)go($("q").value,true)},1400);
   if(v.length<2){$("ac").style.display="none";return}
-  const m=SUG.filter(s=>s.toLowerCase().includes(v)).slice(0,8);
+  let recents=[];try{recents=JSON.parse(localStorage.getItem("ch_recent")||"[]").filter(r=>r.toLowerCase().includes(v)).slice(0,2).map(r=>[r,"↩","Recent"])}catch{}
+  const m=[...recents,...SUG.filter(s=>s[0].toLowerCase().includes(v)).slice(0,8-recents.length)];
   if(!m.length){$("ac").style.display="none";return}
-  $("ac").innerHTML=m.map(s=>`<div>${esc(s).replace(new RegExp("("+v.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i"),"<b>$1</b>")}</div>`).join("");
-  [...$("ac").children].forEach((el,i)=>el.onclick=()=>{$("q").value=m[i];$("ac").style.display="none";go(m[i])});
+  acVals=m.map(s=>s[0]);
+  const rx=new RegExp("("+v.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");
+  $("ac").innerHTML=m.map(s=>`<div class="acx"><span>${s[1]}</span><span>${esc(s[0]).replace(rx,"<b>$1</b>")}</span><span class="cat">${s[2]}</span></div>`).join("");
+  [...$("ac").children].forEach((el,i)=>el.onclick=()=>{$("q").value=acVals[i];$("ac").style.display="none";go(acVals[i])});
   $("ac").style.display="block";
 });
 $("q").addEventListener("keydown",e=>{
   const items=[...$("ac").children];
   if(e.key==="ArrowDown"&&items.length){e.preventDefault();acIdx=(acIdx+1)%items.length}
   else if(e.key==="ArrowUp"&&items.length){e.preventDefault();acIdx=(acIdx-1+items.length)%items.length}
-  else if(e.key==="Enter"){$("ac").style.display="none";go(acIdx>=0&&items[acIdx]?items[acIdx].textContent:$("q").value);return}
+  else if(e.key==="Enter"){$("ac").style.display="none";go(acIdx>=0&&acVals[acIdx]?acVals[acIdx]:$("q").value);return}
   else if(e.key==="Escape"){$("ac").style.display="none";return}
   else return;
   items.forEach((el,i)=>el.classList.toggle("on",i===acIdx));
 });
 document.addEventListener("click",e=>{if(!e.target.closest(".sbox"))$("ac").style.display="none"});
 $("goBtn").onclick=()=>go($("q").value);
+
+/* voice search */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR)$("mic").style.display="none";
+else $("mic").onclick=()=>{
+  const r=new SR();r.lang="en-IN";r.interimResults=false;
+  $("mic").classList.add("rec");
+  r.onresult=e=>{const t=e.results[0][0].transcript.replace(/find me|best coupon for|coupons? for|search/gi,"").trim();$("q").value=t;go(t)};
+  r.onend=()=>$("mic").classList.remove("rec");r.onerror=()=>$("mic").classList.remove("rec");
+  r.start();
+};
 
 function esc(s){const d=document.createElement("div");d.textContent=s==null?"":String(s);return d.innerHTML}
 
@@ -166,13 +200,16 @@ function parseUrl(raw){
   }catch{return null}
 }
 
-async function go(raw){
+let lastQ="";
+async function go(raw,auto){
   raw=String(raw||"").trim();if(!raw)return;
+  if(auto&&raw.toLowerCase()===lastQ)return;
+  lastQ=raw.toLowerCase();clearTimeout(debT);
   $("q").value=raw;$("ac").style.display="none";curQuery=raw;
   $("hero").classList.add("compact");$("trendWrap").style.display="none";
   $("best").style.display="none";$("out").innerHTML='<div class="skel"></div><div class="skel"></div><div class="skel"></div>';
   $("stat").style.display="flex";$("stat").innerHTML="";
-  seen=new Set();all=[];srcMap={};running=0;
+  seen=new Set();all=[];srcMap={};running=0;byKey.clear();
 
   let stores=[],product=null;
   const u=/^https?:\/\//i.test(raw)||/^[a-z0-9-]+\.[a-z.]{2,6}(\/|$)/i.test(raw)?parseUrl(raw):null;
@@ -196,21 +233,33 @@ async function go(raw){
   });
 }
 
+const byKey=new Map();
 function fin(id,d,j){
   const el=$(id);
   const got=(d.coupons||[]).length;
   if(el){el.classList.add(got?"done":"fail");el.querySelector(".sp")?.remove();el.insertAdjacentText("afterbegin",got?"✓ ":"")}
   (d.sources||[]).forEach((u,i)=>srcMap[j.p+"_"+(i+1)]=u);
   (d.coupons||[]).forEach(c=>{
-    const k=((c.code||"")+"|"+(c.discount||"")).toLowerCase();
-    if(seen.has(k))return;seen.add(k);
-    c._src=srcMap[j.p+"_"+(c.source||1)]||"";c._prov=PNAME[j.p];c._store=j.s;all.push(c);
+    const k=(c.code?c.code:(c.discount||"")).toLowerCase().replace(/\s+/g,"");
+    const ex=byKey.get(k);
+    if(ex){ // merge duplicate confirmed by another provider
+      if(!ex._provs.includes(PNAME[j.p]))ex._provs.push(PNAME[j.p]);
+      ex.verified=ex.verified||c.verified;
+      ex.confidence=Math.max(ex.confidence||0,c.confidence||0);
+      ex.bankOffer=ex.bankOffer||c.bankOffer;
+      return;
+    }
+    c._src=srcMap[j.p+"_"+(c.source||1)]||"";c._provs=[PNAME[j.p]];c._store=j.s;
+    byKey.set(k,c);all.push(c);
   });
   render();
   if(--running===0)done();
 }
 
-function score(c){return (c.verified?50:0)+(c.code?25:0)+(c.confidence||0)/4+((/\d+/.exec(c.discount||"")||[0])[0]>50?10:0)}
+function health(c){
+  return Math.min(100,Math.round((c.verified?40:12)+(c.confidence||50)*0.3+Math.min((c._provs||[]).length*10,20)+(c.code?8:4)+(c.expiry?6:0)));
+}
+function score(c){return health(c)+(((/\d+/.exec(c.discount||"")||[0])[0]>50)?8:0)}
 
 function render(){
   if(!all.length){$("out").innerHTML=running?'<div class="skel"></div><div class="skel"></div>':'<div class="empty">Nothing found — try another store name, or check the source sites directly.</div>';return}
@@ -221,11 +270,13 @@ function render(){
         <div class="disc">${esc(c.discount||"Deal")}</div>
         <div class="desc">${esc(c.description||"")}</div>
         <div class="meta">
+          <span class="hs ${health(c)>=80?"g":health(c)>=60?"a":"x"}">${health(c)}/100</span>
           ${c.verified?'<span class="vb">✓ Verified</span>':""}
-          ${c.confidence?`<span class="cf">AI ${Math.round(c.confidence)}% confident</span>`:""}
+          ${c.bankOffer?`<span class="bo">🏦 ${esc(c.bankOffer)}</span>`:""}
           <span>${esc(c._store)}</span>
           ${c.expiry?`<span>Expires ${esc(c.expiry)}</span>`:""}
-          ${c._src?`<a href="${esc(c._src)}" target="_blank" rel="noopener">${esc(c._prov)}</a>`:`<span>${esc(c._prov)}</span>`}
+          ${c._src?`<a href="${esc(c._src)}" target="_blank" rel="noopener">source</a>`:""}
+          <span class="provs">${(c._provs||[]).length>1?`Confirmed by <b>${(c._provs||[]).length} providers</b> · `:""}${esc((c._provs||[]).join(" · "))}</span>
         </div>
       </div>
       ${c.code?`<div class="codebox" data-code="${esc(c.code)}">${esc(c.code)}<small>TAP TO COPY</small></div>`:'<div class="nocode">No code needed</div>'}
@@ -243,7 +294,9 @@ async function done(){
     if(b&&b.headline){
       $("best").innerHTML=`<div class="bt">✨ Best way to save today</div><h3>${esc(b.headline)}</h3>
         <p>${esc(b.reason||"")}</p>
-        ${b.code?`<div class="codebox" style="display:inline-block;margin-top:10px" data-code="${esc(b.code)}">${esc(b.code)}<small>TAP TO COPY</small></div>`:""}`;
+        ${Array.isArray(b.breakdown)&&b.breakdown.length?`<table class="bk">${b.breakdown.map(r=>`<tr><td>${esc(r.label)}</td><td>${esc(r.value)}</td></tr>`).join("")}</table>`:""}
+        ${b.code?`<div class="codebox" style="display:inline-block;margin-top:12px" data-code="${esc(b.code)}">${esc(b.code)}<small>TAP TO COPY</small></div>`:""}
+        ${b.alt&&b.alt.store?`<div class="alt">💡 <b>Also worth checking:</b> ${esc(b.alt.store)} — ${esc(b.alt.why||"")}</div>`:""}`;
       $("best").style.display="block";
       const cb=$("best").querySelector(".codebox");if(cb)cb.onclick=e=>copy(cb.dataset.code,e);
     }
