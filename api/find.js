@@ -36,19 +36,26 @@ async function ddg(q, n = 2) {
   } catch { return []; }
 }
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function gemini(key, prompt) {
   let err = "";
   for (const model of MODELS) {
-    try {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, responseMimeType: "application/json" } }),
-      });
-      if (r.status === 404) continue;
-      const j = await r.json();
-      if (j.error) { err = j.error.message || "err"; continue; }
-      return (j.candidates?.[0]?.content?.parts || []).map(p => p.text).join("");
-    } catch (e) { err = String(e.message || e); }
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, responseMimeType: "application/json" } }),
+        });
+        if (r.status === 404) break; // model gone — next model
+        const j = await r.json();
+        if (j.error) {
+          err = j.error.message || "err";
+          if (/high demand|overloaded|503|try again/i.test(err) && attempt === 0) { await sleep(4000); continue; }
+          break; // quota etc — next model
+        }
+        return (j.candidates?.[0]?.content?.parts || []).map(p => p.text).join("");
+      } catch (e) { err = String(e.message || e); break; }
+    }
   }
   throw new Error(err || "AI failed");
 }
@@ -61,7 +68,7 @@ function pluck(text, open, close) {
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Cache-Control", "s-maxage=900, stale-while-revalidate=3600");
+  res.setHeader("Cache-Control", "no-store"); // overwritten with s-maxage on success only
   const key = process.env.GEMINI_API_KEY;
   if (!key) return res.status(500).json({ error: "GEMINI_API_KEY not set in Vercel." });
   const q = req.query || {};
@@ -108,6 +115,7 @@ export default async function handler(req, res) {
       pages.map((p, i) => `SOURCE ${i + 1} [${p.prov}] — ${p.url}\n${p.text}`).join("\n---\n"));
     const out = pluck(text, "{", "}") || {};
     const coupons = (out.coupons || []).map(c => ({ ...c, provider: (pages[(c.source || 1) - 1] || {}).prov || "web", sourceUrl: (pages[(c.source || 1) - 1] || {}).url || "" }));
+    if (coupons.length) res.setHeader("Cache-Control", "s-maxage=900, stale-while-revalidate=3600");
     return res.status(200).json({ coupons, best: out.best || null, sources: pages.map(p => ({ url: p.url, provider: p.prov })), status, store });
   } catch (e) {
     return res.status(200).json({ coupons: [], error: String(e.message || e), store: q.store });
