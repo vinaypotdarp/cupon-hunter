@@ -81,8 +81,8 @@ export default async function handler(req, res) {
   try {
     if (q.mode === "expand") {
       const text = await gemini(key,
-        `User typed a shopping search: "${String(q.q || "").slice(0, 120)}". Today is ${today}. Region: India.\n` +
-        `Return ONLY JSON: {"product":"product name or null if it's just a store","stores":["up to 2 lowercase store/brand slugs most relevant to buy this from in India"]}. If the query IS a store/brand, its slug must be first.`);
+        `User typed a shopping search (may be natural language like "I need an iPhone under ₹70,000" or "cheapest hosting"): "${String(q.q || "").slice(0, 160)}". Today is ${today}. Region: India.\n` +
+        `Return ONLY JSON: {"product":"specific product name incl. budget constraint if given, or null if it's just a store","stores":["up to 2 lowercase store/brand slugs most relevant to buy this from in India"]}. If the query IS a store/brand, its slug must be first.`);
       return res.status(200).json(pluck(text, "{", "}") || { product: null, stores: [String(q.q || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")] });
     }
 
@@ -109,18 +109,21 @@ export default async function handler(req, res) {
     pages = pages.slice(0, 5);
     if (!pages.length) return res.status(200).json({ coupons: [], sources: [], status, note: "All sources blocked our request. Try again in a minute." });
 
-    // ONE combined AI call: extract + recommend
+    // ONE combined AI call: full Savings Report (never empty)
     const text = await gemini(key,
-      `You are a coupon extraction + savings recommendation engine. Today is ${today}; skip expired offers.\n` +
+      `You are an AI Shopping Savings engine. Mission: "never overpay again". Today is ${today}; skip expired offers. Region: India.\n` +
       `Store: "${store}"${product ? `, product: "${product}"` : ""}. Sources below.\n` +
-      `Return ONLY JSON: {"coupons":[max 10, best first: {"code":"CODE or null","discount":"short headline","description":"1 sentence incl. conditions","expiry":"date or null","verified":true|false,"confidence":0-100,"bankOffer":"bank/card offer text if mentioned, else null","source":<SOURCE number>}],` +
-      `"best":{"headline":"punchy recommendation of the single best way to save","code":"code or null","reason":"1 sentence why","breakdown":[{"label":"...","value":"..."} 2-4 rows from real data only]}}\n` +
-      `Never invent offers or amounts — only what the sources state.\n\n` +
+      `Return ONLY JSON:\n` +
+      `{"coupons":[max 10, best first: {"code":"CODE or null","discount":"short headline","description":"1 sentence incl. conditions","expiry":"date or null","verified":true|false,"confidence":0-100,"bankOffer":"bank/card offer text if mentioned, else null","source":<SOURCE number>}],\n` +
+      `"best":{"headline":"the single smartest way to buy from ${store} today","code":"code or null","reason":"1 sentence why this beats the rest","confidence":0-100,"reasons":["2-4 short trust factors e.g. Verified recently / Confirmed by 2 sources / No expiry risk"],"breakdown":[{"label":"...","value":"..."} 2-4 rows from real source data only]},\n` +
+      `"alternatives":[0-3 of {"store":"other store mentioned in sources with better/similar deals for this","why":"1 short sentence"}],\n` +
+      `"otherWays":[ALWAYS 3-5 of {"title":"short","how":"1-2 sentences, concrete and actionable","type":"cashback|bank|newsletter|timing|membership|shipping|giftcard|other"}]}\n` +
+      `Rules for otherWays: even if zero coupons found, give real non-coupon ways to pay less at ${store} (e.g. cashback portals like CashKaro, typical card offers at checkout, newsletter/first-order discounts, sale-season timing, gift card discounts, free-shipping thresholds). Base on sources when possible; general strategies allowed but NEVER invent specific amounts or codes.\n\n` +
       pages.map((p, i) => `SOURCE ${i + 1} [${p.prov}] — ${p.url}\n${p.text}`).join("\n---\n"));
     const out = pluck(text, "{", "}") || {};
     const coupons = (out.coupons || []).map(c => ({ ...c, provider: (pages[(c.source || 1) - 1] || {}).prov || "web", sourceUrl: (pages[(c.source || 1) - 1] || {}).url || "" }));
     if (coupons.length) res.setHeader("Cache-Control", "s-maxage=900, stale-while-revalidate=3600");
-    return res.status(200).json({ coupons, best: out.best || null, sources: pages.map(p => ({ url: p.url, provider: p.prov })), status, store });
+    return res.status(200).json({ coupons, best: out.best || null, alternatives: out.alternatives || [], otherWays: out.otherWays || [], sources: pages.map(p => ({ url: p.url, provider: p.prov })), status, store });
   } catch (e) {
     return res.status(200).json({ coupons: [], error: String(e.message || e), store: q.store });
   }
