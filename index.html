@@ -155,7 +155,7 @@ let acIdx=-1,acVals=[],debT=null,qCache=new Map();
 $("q").addEventListener("input",()=>{
   const v=$("q").value.trim().toLowerCase();acIdx=-1;
   clearTimeout(debT);
-  if(v.length>=3&&!/^https?:/i.test(v))debT=setTimeout(()=>{if($("q").value.trim().toLowerCase()===v)go($("q").value,true)},1400);
+  if(v.length>=5&&!/^https?:/i.test(v))debT=setTimeout(()=>{if($("q").value.trim().toLowerCase()===v&&$("ac").style.display==="none")go($("q").value,true)},2500);
   if(v.length<2){$("ac").style.display="none";return}
   let recents=[];try{recents=JSON.parse(localStorage.getItem("ch_recent")||"[]").filter(r=>r.toLowerCase().includes(v)).slice(0,2).map(r=>[r,"↩","Recent"])}catch{}
   const m=[...recents,...SUG.filter(s=>s[0].toLowerCase().includes(v)).slice(0,8-recents.length)];
@@ -220,7 +220,7 @@ async function go(raw,auto){
     }catch{}
     if(!stores.length)stores=[raw.toLowerCase().replace(/[^a-z0-9]+/g,"-")];
   }
-  try{let r=JSON.parse(localStorage.getItem("ch_recent")||"[]");r=[raw,...r.filter(x=>x!==raw)].slice(0,6);localStorage.setItem("ch_recent",JSON.stringify(r));drawRecent()}catch{}
+  if(!auto)try{let r=JSON.parse(localStorage.getItem("ch_recent")||"[]");r=[raw,...r.filter(x=>x!==raw)].slice(0,6);localStorage.setItem("ch_recent",JSON.stringify(r));drawRecent()}catch{}
 
   const jobs=[];
   stores.forEach((s,si)=>PROVS.forEach(p=>{if(p!=="ddg"||si===0)jobs.push({s,p})}));
