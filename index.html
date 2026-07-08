@@ -3,182 +3,262 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deal Hunter — Free Coupon Finder (India)</title>
-<meta name="description" content="Paste any product link and find working coupon codes & deals for Indian stores — free.">
+<title>CouponHunter — Before you buy, check here</title>
+<meta name="description" content="The world's easiest way to save money online. Search any store or product — we check every coupon source at once.">
 <style>
-  :root { color-scheme: light; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f7f6f3; color: #1a1a1a; padding: 24px 16px 48px; }
-  .wrap { max-width: 760px; margin: 0 auto; }
-  h1 { font-size: 26px; margin-bottom: 4px; }
-  h1 .tag { font-size: 13px; font-weight: 500; color: #b45309; background: #fef3c7; border-radius: 999px; padding: 2px 10px; vertical-align: middle; margin-left: 8px; }
-  .sub { color: #6b6b6b; font-size: 14px; margin-bottom: 20px; }
-  .searchbox { display: flex; gap: 8px; margin-bottom: 10px; }
-  input[type=text] { flex: 1; padding: 13px 16px; font-size: 15px; border: 1.5px solid #ddd; border-radius: 12px; outline: none; background: #fff; }
-  input[type=text]:focus { border-color: #c96f2b; }
-  button.go { padding: 13px 22px; font-size: 15px; font-weight: 600; color: #fff; background: #c96f2b; border: none; border-radius: 12px; cursor: pointer; white-space: nowrap; }
-  button.go:hover { background: #b35f1f; }
-  button.go:disabled { background: #d8b18f; cursor: default; }
-  .hint { font-size: 12.5px; color: #8a8a8a; margin-bottom: 18px; }
-  .recent { margin-bottom: 18px; font-size: 12.5px; color: #777; }
-  .recent span.chip { display: inline-block; background: #fff; border: 1px solid #e2e2e2; border-radius: 999px; padding: 4px 12px; margin: 0 6px 6px 0; cursor: pointer; color: #444; }
-  .recent span.chip:hover { border-color: #c96f2b; color: #c96f2b; }
-  #status { display: none; background: #fff; border: 1px solid #eee; border-radius: 14px; padding: 16px 18px; margin-bottom: 18px; font-size: 14px; color: #555; }
-  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid #eee; border-top-color: #c96f2b; border-radius: 50%; animation: sp 0.8s linear infinite; vertical-align: -2px; margin-right: 8px; }
-  @keyframes sp { to { transform: rotate(360deg); } }
-  #error { display: none; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; font-size: 14px; }
-  .storehead { font-size: 15px; color: #555; margin: 6px 0 14px; }
-  .storehead b { color: #1a1a1a; text-transform: capitalize; }
-  .card { background: #fff; border: 1px solid #ececec; border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
-  .card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-  .card .disc { font-size: 17px; font-weight: 700; color: #b45309; }
-  .card .desc { font-size: 14px; color: #444; margin-top: 5px; line-height: 1.45; }
-  .card .meta { font-size: 12px; color: #999; margin-top: 8px; }
-  .card .meta a { color: #b45309; text-decoration: none; }
-  .codebox { display: flex; align-items: center; gap: 6px; flex-shrink: 0; border: 1.5px dashed #c96f2b; border-radius: 10px; padding: 7px 12px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px; font-weight: 700; color: #b45309; background: #fffbf5; cursor: pointer; user-select: all; }
-  .codebox:hover { background: #fef3e2; }
-  .codebox .cpy { font-size: 11px; font-weight: 500; color: #999; font-family: inherit; }
-  .nocode { font-size: 12.5px; color: #16a34a; background: #f0fdf4; border-radius: 8px; padding: 6px 10px; flex-shrink: 0; }
-  .badge-v { display: inline-block; font-size: 11px; color: #15803d; background: #f0fdf4; border-radius: 6px; padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
-  .section-t { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #999; margin: 26px 0 12px; }
-  .quick a { display: inline-block; font-size: 13px; background: #fff; border: 1px solid #e2e2e2; border-radius: 999px; padding: 6px 14px; margin: 0 8px 8px 0; text-decoration: none; color: #444; }
-  .quick a:hover { border-color: #c96f2b; color: #c96f2b; }
-  .srcs { font-size: 12.5px; color: #888; line-height: 1.7; }
-  .srcs a { color: #b45309; text-decoration: none; word-break: break-all; }
-  .empty { text-align: center; color: #999; font-size: 14px; padding: 30px 0; }
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; font-size: 13px; padding: 9px 18px; border-radius: 999px; opacity: 0; transition: opacity 0.25s; pointer-events: none; }
-  .toast.show { opacity: 1; }
-  footer { margin-top: 40px; font-size: 12px; color: #aaa; text-align: center; }
+  :root {
+    color-scheme: light dark;
+    --bg:#fafaf8; --fg:#16161a; --mut:#71717a; --card:#ffffff; --line:#e8e8e4;
+    --acc:#c96f2b; --acc2:#b45f1f; --grn:#16a34a; --grnbg:#f0fdf4; --amb:#fef3c7; --ambfg:#b45309;
+    --sh:0 1px 3px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.04);
+  }
+  [data-theme=dark] {
+    --bg:#111114; --fg:#f2f2f0; --mut:#9b9ba3; --card:#1b1b20; --line:#2a2a30;
+    --grnbg:#122a1a; --amb:#2e2410; --sh:0 1px 3px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh;transition:background .3s}
+  .wrap{max-width:840px;margin:0 auto;padding:0 20px 80px}
+  header{display:flex;justify-content:space-between;align-items:center;padding:20px 0}
+  .logo{font-weight:800;font-size:18px;letter-spacing:-.02em}
+  .logo span{color:var(--acc)}
+  #themeBtn{background:none;border:1px solid var(--line);border-radius:999px;width:38px;height:38px;font-size:16px;cursor:pointer;color:var(--fg)}
+  .hero{text-align:center;padding:9vh 0 26px;transition:padding .4s}
+  .hero.compact{padding:8px 0 18px}
+  .hero h1{font-size:clamp(30px,5.5vw,46px);letter-spacing:-.03em;font-weight:800;line-height:1.1}
+  .hero h1 em{font-style:normal;color:var(--acc)}
+  .hero p{color:var(--mut);margin-top:12px;font-size:16px}
+  .hero.compact h1{font-size:24px}
+  .hero.compact p{display:none}
+  .sbox{position:relative;margin:30px auto 0;max-width:640px}
+  .hero.compact .sbox{margin-top:14px}
+  #q{width:100%;padding:19px 130px 19px 54px;font-size:17px;border:1.5px solid var(--line);border-radius:999px;outline:none;background:var(--card);color:var(--fg);box-shadow:var(--sh);transition:border .2s,box-shadow .2s}
+  #q:focus{border-color:var(--acc);box-shadow:0 0 0 4px rgba(201,111,43,.12),var(--sh)}
+  .sico{position:absolute;left:22px;top:50%;transform:translateY(-50%);font-size:17px;pointer-events:none}
+  #goBtn{position:absolute;right:7px;top:7px;bottom:7px;padding:0 24px;font-size:15px;font-weight:700;color:#fff;background:var(--acc);border:none;border-radius:999px;cursor:pointer;transition:background .2s,transform .1s}
+  #goBtn:hover{background:var(--acc2)}
+  #goBtn:active{transform:scale(.96)}
+  #ac{position:absolute;top:calc(100% + 8px);left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh);overflow:hidden;display:none;z-index:30;text-align:left}
+  #ac div{padding:11px 22px;cursor:pointer;font-size:15px}
+  #ac div.on,#ac div:hover{background:rgba(201,111,43,.09)}
+  #ac b{color:var(--acc)}
+  .trend{margin-top:26px;font-size:13px;color:var(--mut)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+  .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 15px;font-size:13.5px;cursor:pointer;color:var(--fg);transition:border .15s,color .15s}
+  .chip:hover{border-color:var(--acc);color:var(--acc)}
+  #stat{display:none;gap:8px;flex-wrap:wrap;margin:8px 0 16px}
+  .pv{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .pv.done{color:var(--grn);border-color:var(--grn)}
+  .pv.fail{opacity:.45;text-decoration:line-through}
+  .sp{width:10px;height:10px;border:2px solid var(--line);border-top-color:var(--acc);border-radius:50%;animation:sp .8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  #best{display:none;background:linear-gradient(135deg,rgba(201,111,43,.10),rgba(201,111,43,.03));border:1.5px solid var(--acc);border-radius:22px;padding:20px 24px;margin-bottom:18px;animation:in .4s}
+  #best .bt{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--acc);text-transform:uppercase}
+  #best h3{font-size:19px;margin:6px 0 4px}
+  #best p{font-size:14px;color:var(--mut)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px 22px;margin-bottom:12px;box-shadow:var(--sh);display:flex;justify-content:space-between;gap:16px;align-items:flex-start;animation:in .35s}
+  @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .disc{font-size:17px;font-weight:800;letter-spacing:-.01em}
+  .desc{font-size:14px;color:var(--mut);margin-top:5px;line-height:1.5}
+  .meta{font-size:12px;color:var(--mut);margin-top:9px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .meta a{color:var(--acc);text-decoration:none}
+  .vb{font-size:11px;font-weight:700;color:var(--grn);background:var(--grnbg);border-radius:6px;padding:2px 8px}
+  .cf{font-size:11px;color:var(--ambfg);background:var(--amb);border-radius:6px;padding:2px 8px}
+  .codebox{flex-shrink:0;border:1.5px dashed var(--acc);border-radius:12px;padding:9px 14px;font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:700;color:var(--acc);background:rgba(201,111,43,.05);cursor:pointer;text-align:center;transition:transform .1s}
+  .codebox:active{transform:scale(.94)}
+  .codebox small{display:block;font-size:10px;color:var(--mut);font-weight:500;margin-top:2px}
+  .nocode{flex-shrink:0;font-size:12px;font-weight:600;color:var(--grn);background:var(--grnbg);border-radius:10px;padding:8px 12px}
+  .skel{height:92px;border-radius:20px;background:linear-gradient(90deg,var(--card),var(--line),var(--card));background-size:200% 100%;animation:sk 1.2s infinite;margin-bottom:12px;border:1px solid var(--line)}
+  @keyframes sk{to{background-position:-200% 0}}
+  .sect{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:28px 0 12px}
+  .empty{text-align:center;color:var(--mut);padding:28px 0;font-size:14.5px}
+  footer{margin-top:56px;text-align:center;font-size:12.5px;color:var(--mut)}
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-size:13px;font-weight:600;padding:10px 20px;border-radius:999px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:60}
+  .toast.show{opacity:1}
+  .conf{position:fixed;width:8px;height:8px;border-radius:2px;pointer-events:none;z-index:55;animation:fall 1s ease-out forwards}
+  @keyframes fall{to{transform:translateY(120px) rotate(340deg);opacity:0}}
+  @media(max-width:560px){.card{flex-direction:column}.codebox{align-self:stretch}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🏷️ Deal Hunter <span class="tag">India</span></h1>
-  <div class="sub">Paste a product link — or type a store / product name — and it hunts the web for working coupon codes and deals. Free.</div>
+  <header>
+    <div class="logo">🏷️ Coupon<span>Hunter</span></div>
+    <button id="themeBtn" title="Toggle dark mode">🌙</button>
+  </header>
 
-  <div class="searchbox">
-    <input type="text" id="q" placeholder="e.g. https://www.myntra.com/... or &quot;flipkart&quot; or &quot;iPhone 16&quot;" />
-    <button class="go" id="goBtn" onclick="hunt()">Find deals</button>
+  <div class="hero" id="hero">
+    <h1>Before you buy, <em>check here.</em></h1>
+    <p>One search. Every coupon source. Your biggest saving — found for you.</p>
+    <div class="sbox">
+      <span class="sico">🔍</span>
+      <input id="q" autocomplete="off" spellcheck="false" placeholder="What are you buying today?">
+      <button id="goBtn">Find savings</button>
+      <div id="ac"></div>
+    </div>
+    <div class="trend" id="trendWrap">Trending today
+      <div class="chips" id="trend"></div>
+    </div>
+    <div class="chips" id="recent" style="margin-top:10px"></div>
   </div>
-  <div class="hint">Works with Amazon.in, Flipkart, Myntra, Ajio, Nykaa, Swiggy, Zomato, BigBasket — any Indian store.</div>
 
-  <div class="recent" id="recent"></div>
-  <div id="error"></div>
-  <div id="status"><span class="spin"></span><span id="statusText">Hunting for deals… (takes ~15–30 s)</span></div>
-  <div id="results"></div>
-  <footer>Codes change fast — always confirm the discount at checkout before paying.</footer>
+  <div id="stat"></div>
+  <div id="best"></div>
+  <div id="out"></div>
+  <footer>Codes change fast — always confirm the discount at checkout. Made with CouponHunter.</footer>
 </div>
 <div class="toast" id="toast">Copied!</div>
 
 <script>
-const $ = id => document.getElementById(id);
+const $=i=>document.getElementById(i);
+const ROT=["Nike shoes","iPhone 17","MacBook Air","Amazon","Flipkart","Myntra","Ajio","Zara","Dominos","Swiggy","MakeMyTrip","Samsung","Boat","Mamaearth","Nykaa","Spotify","Netflix","Udemy","Hostinger","Adidas"];
+const SUG=["Nike","Nike Shoes","Nike Running Shoes","Nike Air Max","Adidas","Puma","Amazon","Flipkart","Myntra","Ajio","Nykaa","Zara","H&M","Levis","iPhone 16","iPhone 17","iPhone Case","AirPods Pro","MacBook Air","Apple","Samsung","OnePlus","Boat","Laptop","HP Laptop","Dell Laptop","Lenovo","Headphones","Smartwatch","Shoes","Sneakers","T-shirt","Jeans","Watches","Perfume","Mamaearth","Sephora","Sugar Cosmetics","Dominos","Pizza Hut","Swiggy","Zomato","KFC","McDonalds","BigBasket","Blinkit","Zepto","MakeMyTrip","Goibibo","Booking.com","Ixigo","Uber","Ola","Netflix","Spotify","YouTube Premium","Hotstar","Udemy","Coursera","Hostinger","Namecheap","GoDaddy","Adobe","Canva","Steam","Epic Games","Croma","Reliance Digital","Vijay Sales","Tata Cliq","Meesho","Snapdeal","FirstCry","Pharmeasy","1mg","Cultfit","Decathlon","Lenskart","Titan","Fastrack","Ikea","Pepperfry","Urban Company"];
+const TREND=["🔥 Amazon","🔥 Myntra Sale","🔥 Flipkart Electronics","🔥 Nike","🔥 Apple","🔥 Swiggy"];
+const PROVS=["grabon","desidime","coupondunia","wethrift","ddg"];
+const PNAME={grabon:"GrabOn",desidime:"DesiDime",coupondunia:"CouponDunia",wethrift:"Wethrift",ddg:"Web search"};
+let seen=new Set(),all=[],srcMap={},running=0,curQuery="";
 
-function parseInput(raw) {
-  raw = raw.trim();
-  let store = null, product = null;
-  if (/^https?:\/\//i.test(raw) || /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$)/i.test(raw)) {
-    try {
-      const u = new URL(/^https?:\/\//i.test(raw) ? raw : "https://" + raw);
-      store = u.hostname.replace(/^www\./, "").split(".")[0];
-      const slug = decodeURIComponent(u.pathname).split("/").filter(Boolean)
-        .map(s => s.replace(/[-_+]/g, " "))
-        .filter(s => s.length > 8 && !/^\d+$/.test(s) && !/(product|item|dp|gp|buy|p|pd)$/i.test(s.trim()))
-        .sort((a, b) => b.length - a.length)[0];
-      if (slug) product = slug.replace(/\b[a-z0-9]{10,}\b/gi, "").replace(/\s+/g, " ").trim().slice(0, 70);
-    } catch (e) { store = raw; }
-  } else {
-    store = raw;
-  }
-  return { store, product };
-}
+/* theme */
+const th=localStorage.getItem("ch_theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+document.documentElement.dataset.theme=th;$("themeBtn").textContent=th==="dark"?"☀️":"🌙";
+$("themeBtn").onclick=()=>{const t=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=t;localStorage.setItem("ch_theme",t);$("themeBtn").textContent=t==="dark"?"☀️":"🌙"};
 
-async function hunt(preset) {
-  const raw = preset || $("q").value;
-  if (!raw.trim()) return;
-  if (preset) $("q").value = preset;
-  const { store, product } = parseInput(raw);
+/* rotating placeholder */
+let ri=0;setInterval(()=>{if(document.activeElement!==$("q")&&!$("q").value){ri=(ri+1)%ROT.length;$("q").placeholder=ROT[ri]+" …"}},3000);
 
-  $("goBtn").disabled = true;
-  $("error").style.display = "none";
-  $("results").innerHTML = "";
-  $("status").style.display = "block";
-
-  try {
-    const params = new URLSearchParams({ store: store });
-    if (product) params.set("product", product);
-    const r = await fetch("/api/find?" + params.toString());
-    const data = await r.json();
-    if (data.error) throw new Error(data.error);
-    render(store, product, data.coupons || [], data.sources || [], data.note);
-    saveRecent(store);
-  } catch (err) {
-    $("error").style.display = "block";
-    $("error").textContent = "Something went wrong: " + err.message;
-  } finally {
-    $("goBtn").disabled = false;
-    $("status").style.display = "none";
-  }
-}
-
-function esc(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
-
-function render(store, product, coupons, sources, note) {
-  let h = '<div class="storehead">Deals for <b>' + esc(store) + '</b>' + (product ? ' · <span style="color:#888">' + esc(product) + "</span>" : "") + "</div>";
-
-  if (note) h += '<div class="empty">' + esc(note) + "</div>";
-  else if (coupons.length === 0) h += '<div class="empty">No active codes extracted this time — try the quick links below, or search again.</div>';
-
-  coupons.forEach(c => {
-    const src = sources[(c.source || 1) - 1];
-    h += '<div class="card"><div class="top"><div>' +
-      '<div class="disc">' + esc(c.discount || "Deal") + (c.verified ? '<span class="badge-v">✓ verified</span>' : "") + "</div>" +
-      '<div class="desc">' + esc(c.description || "") + "</div>" +
-      '<div class="meta">' + (c.expiry ? "Expires " + esc(c.expiry) + " · " : "") +
-      (src ? 'via <a href="' + esc(src) + '" target="_blank" rel="noopener">' + esc(src.replace(/^https?:\/\/(www\.)?/, "").slice(0, 50)) + "</a>" : "") + "</div></div>" +
-      (c.code ? '<div class="codebox" onclick="copyCode(\'' + esc(String(c.code)).replace(/'/g, "\\'") + '\')">' + esc(c.code) + ' <span class="cpy">COPY</span></div>'
-              : '<div class="nocode">No code needed</div>') +
-      "</div></div>";
-  });
-
-  const s = encodeURIComponent(store);
-  h += '<div class="section-t">Double-check on coupon sites</div><div class="quick">' +
-    '<a target="_blank" rel="noopener" href="https://www.grabon.in/search/?q=' + s + '">GrabOn</a>' +
-    '<a target="_blank" rel="noopener" href="https://www.coupondunia.in/search?q=' + s + '">CouponDunia</a>' +
-    '<a target="_blank" rel="noopener" href="https://www.desidime.com/search?q=' + s + '">DesiDime</a>' +
-    '<a target="_blank" rel="noopener" href="https://cashkaro.com/search?searchVal=' + s + '">CashKaro (cashback)</a>' +
-    (product ? '<a target="_blank" rel="noopener" href="https://www.google.com/search?q=' + encodeURIComponent(product + " best price India") + '&tbm=shop">Google Shopping</a>' : "") +
-    "</div>";
-
-  if (sources.length) {
-    h += '<div class="section-t">Sources read</div><div class="srcs">' +
-      sources.map(u => '• <a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + "</a>").join("<br>") + "</div>";
-  }
-  $("results").innerHTML = h;
-}
-
-function copyCode(code) {
-  navigator.clipboard.writeText(code).then(() => {
-    $("toast").classList.add("show");
-    setTimeout(() => $("toast").classList.remove("show"), 1400);
-  });
-}
-
-function saveRecent(store) {
-  try {
-    let r = JSON.parse(localStorage.getItem("dh_recent") || "[]");
-    r = [store, ...r.filter(x => x !== store)].slice(0, 8);
-    localStorage.setItem("dh_recent", JSON.stringify(r));
-    drawRecent();
-  } catch (e) {}
-}
-function drawRecent() {
-  try {
-    const r = JSON.parse(localStorage.getItem("dh_recent") || "[]");
-    $("recent").innerHTML = r.length ? "Recent: " + r.map(x => '<span class="chip" onclick="hunt(\'' + esc(x).replace(/'/g, "\\'") + '\')">' + esc(x) + "</span>").join("") : "";
-  } catch (e) {}
-}
-$("q").addEventListener("keydown", e => { if (e.key === "Enter") hunt(); });
+/* trending + recent */
+$("trend").innerHTML=TREND.map(t=>`<span class="chip" onclick="go('${t.replace("🔥 ","")}')">${t}</span>`).join("");
+function drawRecent(){try{const r=JSON.parse(localStorage.getItem("ch_recent")||"[]");$("recent").innerHTML=r.map(x=>`<span class="chip">↩ ${esc(x)}</span>`).join("");[...$("recent").children].forEach((c,i)=>c.onclick=()=>go(r[i]))}catch{}}
 drawRecent();
+
+/* autocomplete */
+let acIdx=-1;
+$("q").addEventListener("input",()=>{
+  const v=$("q").value.trim().toLowerCase();acIdx=-1;
+  if(v.length<2){$("ac").style.display="none";return}
+  const m=SUG.filter(s=>s.toLowerCase().includes(v)).slice(0,8);
+  if(!m.length){$("ac").style.display="none";return}
+  $("ac").innerHTML=m.map(s=>`<div>${esc(s).replace(new RegExp("("+v.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i"),"<b>$1</b>")}</div>`).join("");
+  [...$("ac").children].forEach((el,i)=>el.onclick=()=>{$("q").value=m[i];$("ac").style.display="none";go(m[i])});
+  $("ac").style.display="block";
+});
+$("q").addEventListener("keydown",e=>{
+  const items=[...$("ac").children];
+  if(e.key==="ArrowDown"&&items.length){e.preventDefault();acIdx=(acIdx+1)%items.length}
+  else if(e.key==="ArrowUp"&&items.length){e.preventDefault();acIdx=(acIdx-1+items.length)%items.length}
+  else if(e.key==="Enter"){$("ac").style.display="none";go(acIdx>=0&&items[acIdx]?items[acIdx].textContent:$("q").value);return}
+  else if(e.key==="Escape"){$("ac").style.display="none";return}
+  else return;
+  items.forEach((el,i)=>el.classList.toggle("on",i===acIdx));
+});
+document.addEventListener("click",e=>{if(!e.target.closest(".sbox"))$("ac").style.display="none"});
+$("goBtn").onclick=()=>go($("q").value);
+
+function esc(s){const d=document.createElement("div");d.textContent=s==null?"":String(s);return d.innerHTML}
+
+function parseUrl(raw){
+  try{const u=new URL(/^https?:\/\//i.test(raw)?raw:"https://"+raw);
+    const store=u.hostname.replace(/^www\./,"").split(".")[0];
+    const slug=decodeURIComponent(u.pathname).split("/").filter(Boolean).map(s=>s.replace(/[-_+]/g," "))
+      .filter(s=>s.length>8&&!/^\d+$/.test(s)).sort((a,b)=>b.length-a.length)[0];
+    return{store,product:slug?slug.replace(/\b[a-z0-9]{10,}\b/gi,"").replace(/\s+/g," ").trim().slice(0,60):null}
+  }catch{return null}
+}
+
+async function go(raw){
+  raw=String(raw||"").trim();if(!raw)return;
+  $("q").value=raw;$("ac").style.display="none";curQuery=raw;
+  $("hero").classList.add("compact");$("trendWrap").style.display="none";
+  $("best").style.display="none";$("out").innerHTML='<div class="skel"></div><div class="skel"></div><div class="skel"></div>';
+  $("stat").style.display="flex";$("stat").innerHTML="";
+  seen=new Set();all=[];srcMap={};running=0;
+
+  let stores=[],product=null;
+  const u=/^https?:\/\//i.test(raw)||/^[a-z0-9-]+\.[a-z.]{2,6}(\/|$)/i.test(raw)?parseUrl(raw):null;
+  if(u){stores=[u.store];product=u.product}
+  else{
+    try{const r=await fetch("/api/find?mode=expand&q="+encodeURIComponent(raw));const j=await r.json();
+      stores=(j.stores||[]).slice(0,2);product=j.product||null;
+    }catch{}
+    if(!stores.length)stores=[raw.toLowerCase().replace(/[^a-z0-9]+/g,"-")];
+  }
+  try{let r=JSON.parse(localStorage.getItem("ch_recent")||"[]");r=[raw,...r.filter(x=>x!==raw)].slice(0,6);localStorage.setItem("ch_recent",JSON.stringify(r));drawRecent()}catch{}
+
+  const jobs=[];
+  stores.forEach((s,si)=>PROVS.forEach(p=>{if(p!=="ddg"||si===0)jobs.push({s,p})}));
+  running=jobs.length;
+  jobs.forEach(j=>{
+    const id="pv_"+j.p+"_"+j.s;
+    $("stat").insertAdjacentHTML("beforeend",`<span class="pv" id="${id}"><span class="sp"></span>${PNAME[j.p]} · ${esc(j.s)}</span>`);
+    fetch(`/api/find?store=${encodeURIComponent(j.s)}&provider=${j.p}${product?"&product="+encodeURIComponent(product):""}`)
+      .then(r=>r.json()).then(d=>fin(id,d,j)).catch(()=>fin(id,{coupons:[]},j));
+  });
+}
+
+function fin(id,d,j){
+  const el=$(id);
+  const got=(d.coupons||[]).length;
+  if(el){el.classList.add(got?"done":"fail");el.querySelector(".sp")?.remove();el.insertAdjacentText("afterbegin",got?"✓ ":"")}
+  (d.sources||[]).forEach((u,i)=>srcMap[j.p+"_"+(i+1)]=u);
+  (d.coupons||[]).forEach(c=>{
+    const k=((c.code||"")+"|"+(c.discount||"")).toLowerCase();
+    if(seen.has(k))return;seen.add(k);
+    c._src=srcMap[j.p+"_"+(c.source||1)]||"";c._prov=PNAME[j.p];c._store=j.s;all.push(c);
+  });
+  render();
+  if(--running===0)done();
+}
+
+function score(c){return (c.verified?50:0)+(c.code?25:0)+(c.confidence||0)/4+((/\d+/.exec(c.discount||"")||[0])[0]>50?10:0)}
+
+function render(){
+  if(!all.length){$("out").innerHTML=running?'<div class="skel"></div><div class="skel"></div>':'<div class="empty">Nothing found — try another store name, or check the source sites directly.</div>';return}
+  const sorted=[...all].sort((a,b)=>score(b)-score(a));
+  $("out").innerHTML=sorted.map((c,i)=>`
+    <div class="card">
+      <div>
+        <div class="disc">${esc(c.discount||"Deal")}</div>
+        <div class="desc">${esc(c.description||"")}</div>
+        <div class="meta">
+          ${c.verified?'<span class="vb">✓ Verified</span>':""}
+          ${c.confidence?`<span class="cf">AI ${Math.round(c.confidence)}% confident</span>`:""}
+          <span>${esc(c._store)}</span>
+          ${c.expiry?`<span>Expires ${esc(c.expiry)}</span>`:""}
+          ${c._src?`<a href="${esc(c._src)}" target="_blank" rel="noopener">${esc(c._prov)}</a>`:`<span>${esc(c._prov)}</span>`}
+        </div>
+      </div>
+      ${c.code?`<div class="codebox" data-code="${esc(c.code)}">${esc(c.code)}<small>TAP TO COPY</small></div>`:'<div class="nocode">No code needed</div>'}
+    </div>`).join("")+(running?'<div class="skel"></div>':"");
+  document.querySelectorAll(".codebox").forEach(b=>b.onclick=e=>copy(b.dataset.code,e));
+}
+
+async function done(){
+  render();
+  if(all.length<1)return;
+  try{
+    const r=await fetch("/api/find",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({mode:"best",query:curQuery,coupons:all.slice(0,20).map(c=>({store:c._store,code:c.code,discount:c.discount,description:c.description,expiry:c.expiry,verified:c.verified}))})});
+    const b=await r.json();
+    if(b&&b.headline){
+      $("best").innerHTML=`<div class="bt">✨ Best way to save today</div><h3>${esc(b.headline)}</h3>
+        <p>${esc(b.reason||"")}</p>
+        ${b.code?`<div class="codebox" style="display:inline-block;margin-top:10px" data-code="${esc(b.code)}">${esc(b.code)}<small>TAP TO COPY</small></div>`:""}`;
+      $("best").style.display="block";
+      const cb=$("best").querySelector(".codebox");if(cb)cb.onclick=e=>copy(cb.dataset.code,e);
+    }
+  }catch{}
+}
+
+function copy(code,e){
+  navigator.clipboard.writeText(code).then(()=>{
+    $("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),1300);
+    const x=e?e.clientX:innerWidth/2,y=e?e.clientY:innerHeight/2,cols=["#c96f2b","#16a34a","#eab308","#3b82f6","#ec4899"];
+    for(let i=0;i<14;i++){const p=document.createElement("div");p.className="conf";
+      p.style.cssText=`left:${x+(Math.random()*60-30)}px;top:${y-10}px;background:${cols[i%5]};animation-delay:${Math.random()*.15}s`;
+      document.body.appendChild(p);setTimeout(()=>p.remove(),1200)}
+  });
+}
 </script>
 </body>
 </html>
