@@ -1,15 +1,15 @@
-// CouponHunter V2 — multi-provider serverless API
-// Modes: ?mode=expand&q=...  |  ?mode=find&store=..&provider=..&product=..  |  POST mode=best
+// CouponHunter V3.1 — quota-efficient: ONE Gemini call per search
+// Modes: ?mode=expand&q=...  |  ?store=..&product=..  (searches all providers, returns coupons+best)
 // Env: GEMINI_API_KEY
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
-const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
 
 const PROVIDERS = {
-  coupondunia: s => [`https://www.coupondunia.in/${s}`],
-  grabon: s => [`https://www.grabon.in/${s}-coupons/`],
-  desidime: s => [`https://www.desidime.com/stores/${s}`],
-  wethrift: s => [`https://www.wethrift.com/${s}`],
+  grabon: s => `https://www.grabon.in/${s}-coupons/`,
+  desidime: s => `https://www.desidime.com/stores/${s}`,
+  coupondunia: s => `https://www.coupondunia.in/${s}`,
+  wethrift: s => `https://www.wethrift.com/${s}`,
 };
 
 function strip(html) {
@@ -23,7 +23,7 @@ async function grab(url, ms = 8000) {
   try {
     const r = await fetch(url, { headers: { "User-Agent": UA, Accept: "text/html", "Accept-Language": "en-IN,en;q=0.9" }, redirect: "follow", signal: c.signal });
     if (!r.ok) return null;
-    return { url, text: strip(await r.text()).slice(0, 12000) };
+    return { url, text: strip(await r.text()).slice(0, 10000) };
   } catch { return null; } finally { clearTimeout(t); }
 }
 
@@ -46,7 +46,7 @@ async function gemini(key, prompt) {
       });
       if (r.status === 404) continue;
       const j = await r.json();
-      if (j.error) { err = j.error.message || "err"; continue; } // incl. quota — try the next free model
+      if (j.error) { err = j.error.message || "err"; continue; }
       return (j.candidates?.[0]?.content?.parts || []).map(p => p.text).join("");
     } catch (e) { err = String(e.message || e); }
   }
@@ -61,56 +61,55 @@ function pluck(text, open, close) {
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Cache-Control", "s-maxage=600, stale-while-revalidate=1800");
+  res.setHeader("Cache-Control", "s-maxage=900, stale-while-revalidate=3600");
   const key = process.env.GEMINI_API_KEY;
   if (!key) return res.status(500).json({ error: "GEMINI_API_KEY not set in Vercel." });
   const q = req.query || {};
-  const mode = q.mode || (req.body && req.body.mode) || "find";
   const today = new Date().toDateString();
 
   try {
-    if (mode === "expand") {
+    if (q.mode === "expand") {
       const text = await gemini(key,
         `User typed a shopping search: "${String(q.q || "").slice(0, 120)}". Today is ${today}. Region: India.\n` +
-        `Return ONLY JSON: {"product":"product name or null if it's just a store","stores":["up to 3 lowercase store/brand slugs most relevant to buy this from in India, e.g. myntra, flipkart, nike, amazon"]}. ` +
-        `If the query IS a store/brand, its slug must be first in stores.`);
+        `Return ONLY JSON: {"product":"product name or null if it's just a store","stores":["up to 2 lowercase store/brand slugs most relevant to buy this from in India"]}. If the query IS a store/brand, its slug must be first.`);
       return res.status(200).json(pluck(text, "{", "}") || { product: null, stores: [String(q.q || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")] });
     }
 
-    if (mode === "best" && req.method === "POST") {
-      const b = req.body || {};
-      const text = await gemini(key,
-        `You are a savings decision engine. Today is ${today}. The user searched "${b.query}". Coupons found (JSON): ${JSON.stringify(b.coupons || []).slice(0, 9000)}\n` +
-        `Rules: use ONLY facts present in the data above — never invent cashback, bank offers, or amounts. Mark derived numbers "est.".\n` +
-        `Return ONLY JSON: {"headline":"short punchy recommendation","store":"store","code":"code or null","reason":"1 sentence why this beats the rest",` +
-        `"breakdown":[{"label":"e.g. Coupon / Bank offer / Min order","value":"e.g. Flat ₹500 off"}] (2-4 rows, only from real data),` +
-        `"alt":{"store":"different store from the data with a strong offer","why":"1 short sentence"} or null if no better alternative store exists in the data}.`);
-      return res.status(200).json(pluck(text, "{", "}") || {});
-    }
-
-    // mode=find — one provider, one store, per request (frontend fans out in parallel)
     const store = String(q.store || "").trim().toLowerCase();
-    const provider = String(q.provider || "ddg");
     const product = String(q.product || "").trim();
     if (!store) return res.status(400).json({ error: "Missing store" });
     const slug = store.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-    let urls = [];
-    if (PROVIDERS[provider]) urls = PROVIDERS[provider](slug);
-    else if (provider === "ddg") {
+    // Fetch ALL providers in parallel (no AI yet)
+    const provNames = Object.keys(PROVIDERS);
+    const fetched = await Promise.all(provNames.map(p => grab(PROVIDERS[p](slug))));
+    let pages = [], status = {};
+    fetched.forEach((pg, i) => {
+      if (pg && pg.text.length > 600) { pages.push({ ...pg, prov: provNames[i] }); status[provNames[i]] = "ok"; }
+      else status[provNames[i]] = "blocked";
+    });
+    if (pages.length < 2) {
       const now = new Date();
-      urls = await ddg(`${store} ${product} coupon codes offers ${now.toLocaleString("en", { month: "long" })} ${now.getFullYear()} India`, 2);
+      const urls = await ddg(`${store} ${product} coupon codes offers ${now.toLocaleString("en", { month: "long" })} ${now.getFullYear()} India`, 2);
+      const extra = await Promise.all(urls.map(u => grab(u)));
+      extra.forEach(pg => { if (pg && pg.text.length > 600) { pages.push({ ...pg, prov: "web" }); status.web = "ok"; } });
+      if (!status.web) status.web = "blocked";
     }
-    const pages = (await Promise.all(urls.map(u => grab(u)))).filter(p => p && p.text.length > 600);
-    if (!pages.length) return res.status(200).json({ coupons: [], sources: [], provider, store });
+    pages = pages.slice(0, 5);
+    if (!pages.length) return res.status(200).json({ coupons: [], sources: [], status, note: "All sources blocked our request. Try again in a minute." });
 
+    // ONE combined AI call: extract + recommend
     const text = await gemini(key,
-      `Extract ACTIVE coupon codes/deals for "${store}"${product ? ` (product: "${product}")` : ""} from these pages. Today is ${today}; skip expired.\n` +
-      `Return ONLY a JSON array, max 8, best first: [{"code":"CODE or null","discount":"short headline","description":"1 sentence incl. conditions","expiry":"date or null","verified":true|false,"confidence":0-100,"bankOffer":"short bank/card offer text if the page mentions one for this deal, else null","source":1}] where source = SOURCE number.\n\n` +
-      pages.map((p, i) => `SOURCE ${i + 1} — ${p.url}\n${p.text}`).join("\n---\n"));
-    const coupons = pluck(text, "[", "]") || [];
-    return res.status(200).json({ coupons, sources: pages.map(p => p.url), provider, store });
+      `You are a coupon extraction + savings recommendation engine. Today is ${today}; skip expired offers.\n` +
+      `Store: "${store}"${product ? `, product: "${product}"` : ""}. Sources below.\n` +
+      `Return ONLY JSON: {"coupons":[max 10, best first: {"code":"CODE or null","discount":"short headline","description":"1 sentence incl. conditions","expiry":"date or null","verified":true|false,"confidence":0-100,"bankOffer":"bank/card offer text if mentioned, else null","source":<SOURCE number>}],` +
+      `"best":{"headline":"punchy recommendation of the single best way to save","code":"code or null","reason":"1 sentence why","breakdown":[{"label":"...","value":"..."} 2-4 rows from real data only]}}\n` +
+      `Never invent offers or amounts — only what the sources state.\n\n` +
+      pages.map((p, i) => `SOURCE ${i + 1} [${p.prov}] — ${p.url}\n${p.text}`).join("\n---\n"));
+    const out = pluck(text, "{", "}") || {};
+    const coupons = (out.coupons || []).map(c => ({ ...c, provider: (pages[(c.source || 1) - 1] || {}).prov || "web", sourceUrl: (pages[(c.source || 1) - 1] || {}).url || "" }));
+    return res.status(200).json({ coupons, best: out.best || null, sources: pages.map(p => ({ url: p.url, provider: p.prov })), status, store });
   } catch (e) {
-    return res.status(200).json({ coupons: [], error: String(e.message || e), provider: q.provider, store: q.store });
+    return res.status(200).json({ coupons: [], error: String(e.message || e), store: q.store });
   }
 }
