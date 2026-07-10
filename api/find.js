@@ -138,6 +138,28 @@ function regexExtract(pages) {
   // Best-detailed codes first
   return out.sort((a, b) => b.confidence - a.confidence);
 }
+// Code-less deals (Flipkart etc. mostly run deals + bank offers, not codes)
+function dealExtract(pages, existing) {
+  const out = [], seen = new Set(existing.map(c => (c.discount || "").toLowerCase()));
+  for (let pi = 0; pi < pages.length; pi++) {
+    const t = (pages[pi].text || "").replace(/\S*[\[\]{}<>="\\!]\S*/g, " ").replace(/\s+/g, " ");
+    const re = /(?:flat|upto|up to|extra|get)\s?(?:₹\s?|rs\.?\s?)?\d[\d,]*\s?%?\s*(?:off|cashback|discount)(?:\s(?:on|across|above|over|for|sitewide)\s[^.|,;:]{3,50})?/gi;
+    let m;
+    while ((m = re.exec(t)) && out.length < 8) {
+      let d = m[0].replace(/\s+/g, " ").trim();
+      if (/more informat|show |view |details/i.test(d)) d = d.split(/more informat|show |view |details/i)[0].trim();
+      const key = d.toLowerCase().replace(/[^a-z0-9%₹]/g, "");
+      if (d.length < 10 || seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        code: null, discount: titleCase(d),
+        description: `Live deal listed on ${pages[pi].prov} — no code needed, discount applies on the store.`,
+        expiry: null, verified: false, confidence: 45, bankOffer: null, source: pi + 1,
+      });
+    }
+  }
+  return out;
+}
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -195,15 +217,17 @@ export default async function handler(req, res) {
     let coupons = (out.coupons || []).map(c => ({ ...c, provider: (pages[(c.source || 1) - 1] || {}).prov || "web", sourceUrl: (pages[(c.source || 1) - 1] || {}).url || "" }));
     let best = out.best || null, otherWays = out.otherWays || [];
     if (!coupons.length) { // AI returned nothing usable — pattern-match the pages directly
-      coupons = regexExtract(pages).map(c => ({ ...c, provider: (pages[(c.source || 1) - 1] || {}).prov || "web", sourceUrl: (pages[(c.source || 1) - 1] || {}).url || "" }));
+      let extracted = regexExtract(pages);
+      if (extracted.length < 4) extracted = extracted.concat(dealExtract(pages, extracted)).slice(0, 10);
+      coupons = extracted.map(c => ({ ...c, provider: (pages[(c.source || 1) - 1] || {}).prov || "web", sourceUrl: (pages[(c.source || 1) - 1] || {}).url || "" }));
       if (coupons.length && !best) {
         const top = coupons[0];
         best = {
-          headline: top.discount !== "Deal Code" ? `${top.discount} with code ${top.code}` : `Try code ${top.code} at checkout`,
+          headline: top.code ? (top.discount !== "Deal Code" ? `${top.discount} with code ${top.code}` : `Try code ${top.code} at checkout`) : `${top.discount} — live deal, no code needed`,
           code: top.code, confidence: top.confidence,
           reason: `Best-detailed offer found across ${pages.length} live coupon sources right now.`,
-          reasons: [`Seen on ${top.provider}`, `${coupons.length} code${coupons.length > 1 ? "s" : ""} found on ${new Set(coupons.map(c => c.provider)).size} live source${new Set(coupons.map(c => c.provider)).size > 1 ? "s" : ""}`, "Confirm the discount at checkout"],
-          breakdown: coupons.slice(0, 3).map(c => ({ label: c.code, value: c.discount })),
+          reasons: [`Seen on ${top.provider}`, `${coupons.length} offer${coupons.length > 1 ? "s" : ""} found on ${new Set(coupons.map(c => c.provider)).size} live source${new Set(coupons.map(c => c.provider)).size > 1 ? "s" : ""}`, "Confirm the discount at checkout"],
+          breakdown: coupons.slice(0, 3).map(c => ({ label: c.code || "Deal", value: c.discount })),
         };
       }
       if (!otherWays.length) otherWays = [
