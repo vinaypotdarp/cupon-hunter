@@ -70,6 +70,32 @@ function pluck(text, open, close) {
   try { return JSON.parse(text.slice(a, b + 1)); } catch { return null; }
 }
 
+// ---- Non-AI fallback extractor: works even when Gemini is down/throttled ----
+const NOTCODES = /^(COUPON|COUPONS|CODES?|COPY|OFFERS?|SALE|FLAT|UPTO|EXTRA|INDIA|VERIFIED|EXPIRED|DETAILS|SHOP|ONLINE|TODAY|DEALS?|STORES?|PRODUCTS?|SHIPPING|DELIVERY|LIMITED|GRABON|WETHRIFT|DESIDIME|COUPONDUNIA|SUBMIT|SIGNUP|LOGIN|TERMS|PRIVACY|ABOUT|CONTACT|SEARCH|CATEGORY|FASHION|BEAUTY|MOBILES?|APPAREL|FOOTWEAR|ELECTRONICS)$/;
+function regexExtract(pages) {
+  const out = [], seen = new Set();
+  for (let pi = 0; pi < pages.length; pi++) {
+    const t = pages[pi].text || "";
+    const re = /\b[A-Z][A-Z0-9]{4,14}\b/g; let m;
+    while ((m = re.exec(t)) && out.length < 12) {
+      const code = m[0];
+      if (seen.has(code) || NOTCODES.test(code)) continue;
+      const hasDigit = /\d/.test(code);
+      if (!hasDigit && code.length < 6) continue;
+      const ctx = t.slice(Math.max(0, m.index - 160), m.index + 160);
+      if (!/coupon|code|copy|promo|voucher/i.test(ctx)) continue;
+      const disc = (ctx.match(/(?:flat|upto|up to|extra|get)?\s*(?:₹\s?\d[\d,]*|rs\.?\s?\d[\d,]*|\d{1,2}%)\s*(?:off|discount|cashback)/i) || [])[0];
+      seen.add(code);
+      out.push({
+        code, discount: disc ? disc.trim().replace(/\s+/g, " ") : "Deal code",
+        description: `Spotted on ${pages[pi].prov} — apply at checkout to confirm the discount.`,
+        expiry: null, verified: false, confidence: 40, bankOffer: null, source: pi + 1,
+      });
+    }
+  }
+  return out;
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Cache-Control", "no-store"); // overwritten with s-maxage on success only
@@ -109,8 +135,9 @@ export default async function handler(req, res) {
     pages = pages.slice(0, 5);
     if (!pages.length) return res.status(200).json({ coupons: [], sources: [], status, note: "All sources blocked our request. Try again in a minute." });
 
-    // ONE combined AI call: full Savings Report (never empty)
-    const text = await gemini(key,
+    // ONE combined AI call: full Savings Report (never empty). If AI fails, pattern-extraction still delivers.
+    let text = "";
+    try { text = await gemini(key,
       `You are an AI Shopping Savings engine. Mission: "never overpay again". Today is ${today}; skip expired offers. Region: India.\n` +
       `Store: "${store}"${product ? `, product: "${product}"` : ""}. Sources below.\n` +
       `Return ONLY JSON:\n` +
@@ -120,8 +147,12 @@ export default async function handler(req, res) {
       `"otherWays":[ALWAYS 3-5 of {"title":"short","how":"1-2 sentences, concrete and actionable","type":"cashback|bank|newsletter|timing|membership|shipping|giftcard|other"}]}\n` +
       `Rules for otherWays: even if zero coupons found, give real non-coupon ways to pay less at ${store} (e.g. cashback portals like CashKaro, typical card offers at checkout, newsletter/first-order discounts, sale-season timing, gift card discounts, free-shipping thresholds). Base on sources when possible; general strategies allowed but NEVER invent specific amounts or codes.\n\n` +
       pages.map((p, i) => `SOURCE ${i + 1} [${p.prov}] — ${p.url}\n${p.text}`).join("\n---\n"));
+    } catch (aiErr) { text = ""; } // AI down/throttled — regex fallback below takes over
     const out = pluck(text, "{", "}") || {};
-    const coupons = (out.coupons || []).map(c => ({ ...c, provider: (pages[(c.source || 1) - 1] || {}).prov || "web", sourceUrl: (pages[(c.source || 1) - 1] || {}).url || "" }));
+    let coupons = (out.coupons || []).map(c => ({ ...c, provider: (pages[(c.source || 1) - 1] || {}).prov || "web", sourceUrl: (pages[(c.source || 1) - 1] || {}).url || "" }));
+    if (!coupons.length) { // AI returned nothing usable — pattern-match the pages directly
+      coupons = regexExtract(pages).map(c => ({ ...c, provider: (pages[(c.source || 1) - 1] || {}).prov || "web", sourceUrl: (pages[(c.source || 1) - 1] || {}).url || "" }));
+    }
     if (coupons.length) res.setHeader("Cache-Control", "s-maxage=900, stale-while-revalidate=3600");
     return res.status(200).json({ coupons, best: out.best || null, alternatives: out.alternatives || [], otherWays: out.otherWays || [], sources: pages.map(p => ({ url: p.url, provider: p.prov })), status, store });
   } catch (e) {
