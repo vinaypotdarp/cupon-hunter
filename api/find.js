@@ -88,10 +88,13 @@ function findDiscount(ctx) {
   return null;
 }
 function findDescription(ctx, code) {
-  // Grab the offer-title phrase around the code: starts at an offer keyword, runs until a boundary
-  const m = ctx.match(/(?:flat|extra|upto|up to|save|get|buy|avail|enjoy|grab)\s[^|•·]{10,110}?(?:off|discount|cashback|delivery|shipping|order|purchase|sitewide|gift)[a-z ]{0,25}/i);
-  if (m) {
+  // Kill leftover markup/class junk tokens (e.g. *]:!w-full, mt-2">) before matching
+  const clean = ctx.replace(/\S*[\[\]{}<>="\\!]\S*/g, " ").replace(/\s+/g, " ");
+  const re = /(?:flat|extra|upto|up to|save|get|buy|avail|enjoy|grab)\s[^|•·]{10,110}?(?:off|discount|cashback|delivery|shipping|order|purchase|sitewide|gift)(?:s?\s?(?:above|over|of)?\s?(?:₹\s?|rs\.?\s?)?\d[\d,]*)?[a-z ]{0,20}/gi;
+  let m;
+  while ((m = re.exec(clean))) {
     let d = m[0].replace(/\s+/g, " ").trim();
+    if (/get coupon|verified \d|used \d|last verified|show code|reveal/i.test(d)) continue; // nav/badge junk
     d = d.charAt(0).toUpperCase() + d.slice(1);
     if (!/[.!]$/.test(d)) d += ".";
     return d;
@@ -194,7 +197,7 @@ export default async function handler(req, res) {
           headline: top.discount !== "Deal Code" ? `${top.discount} with code ${top.code}` : `Try code ${top.code} at checkout`,
           code: top.code, confidence: top.confidence,
           reason: `Best-detailed offer found across ${pages.length} live coupon sources right now.`,
-          reasons: [`Seen on ${top.provider}`, `${coupons.length} codes found across ${new Set(coupons.map(c => c.provider)).size} sources`, "Confirm the discount at checkout"],
+          reasons: [`Seen on ${top.provider}`, `${coupons.length} code${coupons.length > 1 ? "s" : ""} found on ${new Set(coupons.map(c => c.provider)).size} live source${new Set(coupons.map(c => c.provider)).size > 1 ? "s" : ""}`, "Confirm the discount at checkout"],
           breakdown: coupons.slice(0, 3).map(c => ({ label: c.code, value: c.discount })),
         };
       }
