@@ -95,6 +95,11 @@ function findDescription(ctx, code) {
   while ((m = re.exec(clean))) {
     let d = m[0].replace(/\s+/g, " ").trim();
     if (/get coupon|verified \d|used \d|last verified|show code|reveal/i.test(d)) continue; // nav/badge junk
+    // strip nav-text leaks and dangling prepositions
+    d = d.replace(/\b(?:more informat\w*|show details?|view details?|see details?|t&cs?|terms apply)\b/gi, " ")
+      .replace(/\s+/g, " ").trim()
+      .replace(/[,\s]*(?:above|over|on orders?|on|of|for|upto|up to)$/i, "").trim();
+    if (d.length < 12) continue;
     d = d.charAt(0).toUpperCase() + d.slice(1);
     if (!/[.!]$/.test(d)) d += ".";
     return d;
