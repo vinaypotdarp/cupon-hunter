@@ -72,6 +72,36 @@ function pluck(text, open, close) {
 
 // ---- Non-AI fallback extractor: works even when Gemini is down/throttled ----
 const NOTCODES = /^(COUPON|COUPONS|CODES?|COPY|OFFERS?|SALE|FLAT|UPTO|EXTRA|INDIA|VERIFIED|EXPIRED|DETAILS|SHOP|ONLINE|TODAY|DEALS?|STORES?|PRODUCTS?|SHIPPING|DELIVERY|LIMITED|GRABON|WETHRIFT|DESIDIME|COUPONDUNIA|SUBMIT|SIGNUP|LOGIN|TERMS|PRIVACY|ABOUT|CONTACT|SEARCH|CATEGORY|FASHION|BEAUTY|MOBILES?|APPAREL|FOOTWEAR|ELECTRONICS)$/;
+function titleCase(s) {
+  return s.replace(/\s+/g, " ").trim().replace(/\b([a-z])/g, (_, c) => c.toUpperCase())
+    .replace(/\bRs\.?\s?(\d)/gi, "₹$1").replace(/\bUpto\b/g, "Up to");
+}
+function findDiscount(ctx) {
+  const pats = [
+    /(?:flat|extra|upto|up to|save|get)\s*(?:₹\s?|rs\.?\s?)?\d[\d,]*\s?%?\s*(?:off|discount|cashback)/i,
+    /(?:₹\s?|rs\.?\s?)\d[\d,]*\s*(?:off|discount|cashback)/i,
+    /\d{1,2}\s?%\s*(?:off|discount|cashback)/i,
+    /buy\s?\d+\s?,?\s?get\s?\d+[^.,|]{0,20}/i,
+    /free\s(?:delivery|shipping|gift)[^.,|]{0,15}/i,
+  ];
+  for (const p of pats) { const m = ctx.match(p); if (m) return titleCase(m[0]); }
+  return null;
+}
+function findDescription(ctx, code) {
+  // Grab the offer-title phrase around the code: starts at an offer keyword, runs until a boundary
+  const m = ctx.match(/(?:flat|extra|upto|up to|save|get|buy|avail|enjoy|grab)\s[^|•·]{10,110}?(?:off|discount|cashback|delivery|shipping|order|purchase|sitewide|gift)[a-z ]{0,25}/i);
+  if (m) {
+    let d = m[0].replace(/\s+/g, " ").trim();
+    d = d.charAt(0).toUpperCase() + d.slice(1);
+    if (!/[.!]$/.test(d)) d += ".";
+    return d;
+  }
+  return null;
+}
+function findExpiry(ctx) {
+  const m = ctx.match(/(?:valid (?:till|until|upto)|expires?(?: on)?|ends?(?: on)?)\s*[:\-]?\s*(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]{3,9}\.?,?\s*\d{0,4}|[A-Za-z]{3,9}\s+\d{1,2},?\s*\d{0,4}|\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i);
+  return m ? m[1].trim() : null;
+}
 function regexExtract(pages) {
   const out = [], seen = new Set();
   for (let pi = 0; pi < pages.length; pi++) {
@@ -81,18 +111,24 @@ function regexExtract(pages) {
       const code = m[0];
       if (seen.has(code) || NOTCODES.test(code)) continue;
       if (!/\d/.test(code)) continue; // real codes almost always contain digits — keeps precision high
-      const ctx = t.slice(Math.max(0, m.index - 160), m.index + 160);
+      const ctx = t.slice(Math.max(0, m.index - 240), m.index + 200);
       if (!/coupon|code|copy|promo|voucher/i.test(ctx)) continue;
-      const disc = (ctx.match(/(?:flat|upto|up to|extra|get)?\s*(?:₹\s?\d[\d,]*|rs\.?\s?\d[\d,]*|\d{1,2}%)\s*(?:off|discount|cashback)/i) || [])[0];
+      const disc = findDiscount(ctx);
+      const desc = findDescription(ctx, code);
+      const expiry = findExpiry(ctx);
       seen.add(code);
       out.push({
-        code, discount: disc ? disc.trim().replace(/\s+/g, " ") : "Deal code",
-        description: `Spotted on ${pages[pi].prov} — apply at checkout to confirm the discount.`,
-        expiry: null, verified: false, confidence: 40, bankOffer: null, source: pi + 1,
+        code,
+        discount: disc || "Deal Code",
+        description: desc || `Found on ${pages[pi].prov} — apply at checkout to confirm the discount.`,
+        expiry, verified: false,
+        confidence: disc && desc ? 62 : disc ? 55 : 42,
+        bankOffer: null, source: pi + 1,
       });
     }
   }
-  return out;
+  // Best-detailed codes first
+  return out.sort((a, b) => b.confidence - a.confidence);
 }
 
 export default async function handler(req, res) {
@@ -149,11 +185,28 @@ export default async function handler(req, res) {
     } catch (aiErr) { text = ""; } // AI down/throttled — regex fallback below takes over
     const out = pluck(text, "{", "}") || {};
     let coupons = (out.coupons || []).map(c => ({ ...c, provider: (pages[(c.source || 1) - 1] || {}).prov || "web", sourceUrl: (pages[(c.source || 1) - 1] || {}).url || "" }));
+    let best = out.best || null, otherWays = out.otherWays || [];
     if (!coupons.length) { // AI returned nothing usable — pattern-match the pages directly
       coupons = regexExtract(pages).map(c => ({ ...c, provider: (pages[(c.source || 1) - 1] || {}).prov || "web", sourceUrl: (pages[(c.source || 1) - 1] || {}).url || "" }));
+      if (coupons.length && !best) {
+        const top = coupons[0];
+        best = {
+          headline: top.discount !== "Deal Code" ? `${top.discount} with code ${top.code}` : `Try code ${top.code} at checkout`,
+          code: top.code, confidence: top.confidence,
+          reason: `Best-detailed offer found across ${pages.length} live coupon sources right now.`,
+          reasons: [`Seen on ${top.provider}`, `${coupons.length} codes found across ${new Set(coupons.map(c => c.provider)).size} sources`, "Confirm the discount at checkout"],
+          breakdown: coupons.slice(0, 3).map(c => ({ label: c.code, value: c.discount })),
+        };
+      }
+      if (!otherWays.length) otherWays = [
+        { title: "Cashback portals", how: `Activate ${store} via CashKaro or GoPaisa before buying — cashback stacks on top of coupon codes.`, type: "cashback" },
+        { title: "Card offers at checkout", how: "Check the payment page for instant bank discounts (HDFC/ICICI/SBI cards often get 5-10% off).", type: "bank" },
+        { title: "First-order / newsletter discount", how: `Sign up on ${store} with a new email — most stores send a welcome code within minutes.`, type: "newsletter" },
+        { title: "Time it to a sale", how: "Prices drop hardest during payday-end sales and festival events — add to cart and watch for 2-3 days if you can wait.", type: "timing" },
+      ];
     }
     if (coupons.length) res.setHeader("Cache-Control", "s-maxage=900, stale-while-revalidate=3600");
-    return res.status(200).json({ coupons, best: out.best || null, alternatives: out.alternatives || [], otherWays: out.otherWays || [], sources: pages.map(p => ({ url: p.url, provider: p.prov })), status, store });
+    return res.status(200).json({ coupons, best, alternatives: out.alternatives || [], otherWays, sources: pages.map(p => ({ url: p.url, provider: p.prov })), status, store });
   } catch (e) {
     return res.status(200).json({ coupons: [], error: String(e.message || e), store: q.store });
   }
