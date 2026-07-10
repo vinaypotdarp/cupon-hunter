@@ -138,6 +138,17 @@ function regexExtract(pages) {
   // Best-detailed codes first
   return out.sort((a, b) => b.confidence - a.confidence);
 }
+// Estimated saving value for ranking: ₹ amounts as-is, percentages ×15, cashback halved
+function dealValue(c) {
+  const s = `${c.discount || ""} ${c.description || ""}`;
+  let v = 0;
+  const rup = s.match(/(?:₹\s?|rs\.?\s?)(\d[\d,]*)/i);
+  if (rup) v = parseInt(rup[1].replace(/,/g, ""), 10) || 0;
+  const pct = s.match(/(\d{1,2})\s?%/);
+  if (pct) v = Math.max(v, (parseInt(pct[1], 10) || 0) * 15);
+  if (/cashback/i.test(s)) v *= 0.5;
+  return v;
+}
 // Code-less deals (Flipkart etc. mostly run deals + bank offers, not codes)
 function dealExtract(pages, existing) {
   const out = [], seen = new Set(existing.map(c => (c.discount || "").toLowerCase()));
@@ -219,6 +230,7 @@ export default async function handler(req, res) {
     if (!coupons.length) { // AI returned nothing usable — pattern-match the pages directly
       let extracted = regexExtract(pages);
       if (extracted.length < 4) extracted = extracted.concat(dealExtract(pages, extracted)).slice(0, 10);
+      extracted.sort((a, b) => (dealValue(b) - dealValue(a)) || (b.confidence - a.confidence) || ((b.code ? 1 : 0) - (a.code ? 1 : 0)));
       coupons = extracted.map(c => ({ ...c, provider: (pages[(c.source || 1) - 1] || {}).prov || "web", sourceUrl: (pages[(c.source || 1) - 1] || {}).url || "" }));
       if (coupons.length && !best) {
         const top = coupons[0];
