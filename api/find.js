@@ -80,8 +80,7 @@ function regexExtract(pages) {
     while ((m = re.exec(t)) && out.length < 12) {
       const code = m[0];
       if (seen.has(code) || NOTCODES.test(code)) continue;
-      const hasDigit = /\d/.test(code);
-      if (!hasDigit && code.length < 6) continue;
+      if (!/\d/.test(code)) continue; // real codes almost always contain digits — keeps precision high
       const ctx = t.slice(Math.max(0, m.index - 160), m.index + 160);
       if (!/coupon|code|copy|promo|voucher/i.test(ctx)) continue;
       const disc = (ctx.match(/(?:flat|upto|up to|extra|get)?\s*(?:₹\s?\d[\d,]*|rs\.?\s?\d[\d,]*|\d{1,2}%)\s*(?:off|discount|cashback)/i) || [])[0];
